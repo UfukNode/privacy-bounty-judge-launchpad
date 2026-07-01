@@ -1,0 +1,18 @@
+{
+  "name": "privacy-bounty-judge-launchpad",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Unofficial one-click launchpad and local helper for privacy-preserving bounty judge assignments.",
+  "scripts": {
+    "start": "node serve.js",
+    "test": "node --test"
+  },
+  "keywords": [
+    "commit-reveal",
+    "ritual",
+    "bounty",
+    "study-guide"
+  ],
+  "license": "MIT",
+  "devDependencies": {}
+}

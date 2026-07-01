@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy Bounty Judge Launchpad</title>
+    <meta
+      name="description"
+      content="Unofficial one-click launchpad and local commitment helper for commit-reveal bounty judge assignments."
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <img src="./assets/ritual-logo.jpg" alt="Ritual-style geometric logo" />
+        <div>
+          <p class="eyebrow">Unofficial community launchpad</p>
+          <h1>Privacy-Preserving Bounty Judge</h1>
+        </div>
+      </div>
+      <a class="source-link" href="https://github.com/cozfuttu/ritual-chain-workshop" target="_blank" rel="noreferrer">
+        Official workshop repo
+      </a>
+    </header>
+
+    <main class="layout">
+      <section class="panel wide launch-panel" aria-labelledby="launch-title">
+        <div class="panel-heading">
+          <p class="eyebrow">Tek tık başlangıç</p>
+          <h2 id="launch-title">Ödevi anlamak için buradan başla</h2>
+          <p>
+            Bu sayfa ödevi senin yerine yapmaz. Commit-reveal mantığını gösterir,
+            commitment hesaplar ve teslim checklist'ini düzenli takip ettirir.
+          </p>
+        </div>
+        <div class="launch-actions">
+          <a class="primary link-button" href="https://github.com/cozfuttu/ritual-chain-workshop" target="_blank" rel="noreferrer">
+            Official repo
+          </a>
+          <a class="secondary link-button" href="./templates/TELEGRAM_MESSAGE.md" target="_blank" rel="noreferrer">
+            Telegram metni
+          </a>
+          <a class="secondary link-button" href="https://codespaces.new/UfukNode/privacy-bounty-judge-launchpad?quickstart=1" target="_blank" rel="noreferrer">
+            Codespaces
+          </a>
+        </div>
+      </section>
+
+      <section class="panel tool-panel" aria-labelledby="commitment-title">
+        <div class="panel-heading">
+          <p class="eyebrow">Local tool</p>
+          <h2 id="commitment-title">Commitment builder</h2>
+          <p>
+            Calculates the value for
+            <code>keccak256(abi.encode(answer, salt, msg.sender, bountyId))</code>.
+            Everything runs in this browser tab.
+          </p>
+        </div>
+
+        <form id="commitment-form" class="form-grid">
+          <label>
+            Answer
+            <textarea id="answer" rows="5" placeholder="Paste the answer you will later reveal"></textarea>
+          </label>
+
+          <div class="field-row">
+            <label>
+              Salt bytes32
+              <input id="salt" spellcheck="false" placeholder="0x..." />
+            </label>
+            <button class="secondary" type="button" id="generate-salt">Generate</button>
+          </div>
+
+          <label>
+            Wallet address
+            <input id="address" spellcheck="false" placeholder="0x... (40 hex chars)" />
+          </label>
+
+          <label>
+            Bounty ID
+            <input id="bounty-id" inputmode="numeric" placeholder="1" />
+          </label>
+
+          <button class="primary" type="submit">Calculate commitment</button>
+        </form>
+
+        <div class="result-box" aria-live="polite">
+          <span>bytes32 commitment</span>
+          <output id="commitment-output">Waiting for inputs</output>
+          <button class="secondary" type="button" data-copy-target="commitment-output">Copy</button>
+        </div>
+
+        <p id="tool-error" class="error" role="alert"></p>
+      </section>
+
+      <section class="panel" aria-labelledby="flow-title">
+        <div class="panel-heading">
+          <p class="eyebrow">Assignment flow</p>
+          <h2 id="flow-title">What participants should build</h2>
+        </div>
+
+        <ol class="steps">
+          <li>
+            <strong>Fork the starter repo.</strong>
+            Work in your own copy of <code>cozfuttu/ritual-chain-workshop</code>.
+          </li>
+          <li>
+            <strong>Replace plaintext submissions.</strong>
+            Use <code>submitCommitment</code> during the submission phase.
+          </li>
+          <li>
+            <strong>Reveal after the deadline.</strong>
+            Verify answer, salt, sender, and bounty ID before storing the answer.
+          </li>
+          <li>
+            <strong>Judge only valid reveals.</strong>
+            Batch revealed answers into one Ritual LLM request.
+          </li>
+          <li>
+            <strong>Let the owner finalize.</strong>
+            AI review is advisory; the human owner transfers the reward.
+          </li>
+        </ol>
+
+        <div class="notice">
+          <strong>Study-guide boundary:</strong>
+          this repo explains the pattern and provides local helpers. It is not an official Ritual resource
+          and it is not a one-click assignment solver.
+        </div>
+      </section>
+
+      <section class="panel wide" aria-labelledby="checklist-title">
+        <div class="panel-heading">
+          <p class="eyebrow">Submission checklist</p>
+          <h2 id="checklist-title">Before Proof of Building</h2>
+        </div>
+
+        <div class="checklist">
+          <label><input type="checkbox" /> Contract has <code>submitCommitment</code>.</label>
+          <label><input type="checkbox" /> Contract has <code>revealAnswer</code>.</label>
+          <label><input type="checkbox" /> Wrong salt or wrong sender cannot reveal.</label>
+          <label><input type="checkbox" /> Unrevealed entries cannot win.</label>
+          <label><input type="checkbox" /> README explains lifecycle, architecture, and reflection.</label>
+          <label><input type="checkbox" /> Contract is deployed and transaction hash is saved.</label>
+        </div>
+      </section>
+
+      <section class="panel wide" aria-labelledby="templates-title">
+        <div class="panel-heading">
+          <p class="eyebrow">Templates</p>
+          <h2 id="templates-title">Copyable starting points</h2>
+        </div>
+
+        <div class="template-grid">
+          <article>
+            <h3>README sections</h3>
+            <p>Lifecycle, security notes, and reflection prompt.</p>
+            <a href="./templates/README_SUBMISSION_TEMPLATE.md" target="_blank" rel="noreferrer">Open template</a>
+          </article>
+          <article>
+            <h3>Test plan</h3>
+            <p>Reveal edge cases to cover before deploy.</p>
+            <a href="./templates/TEST_PLAN.md" target="_blank" rel="noreferrer">Open template</a>
+          </article>
+          <article>
+            <h3>Architecture note</h3>
+            <p>Required track plus advanced Ritual-native design notes.</p>
+            <a href="./templates/ARCHITECTURE_NOTE.md" target="_blank" rel="noreferrer">Open template</a>
+          </article>
+          <article>
+            <h3>Solidity skeleton</h3>
+            <p>TODO-marked commit-reveal structure, not a final answer.</p>
+            <a href="./templates/AIJUDGE_COMMIT_REVEAL_SKELETON.sol" target="_blank" rel="noreferrer">Open skeleton</a>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel wide" aria-labelledby="discord-title">
+        <div class="panel-heading">
+          <p class="eyebrow">Discord form helper</p>
+          <h2 id="discord-title">Fields to save after deploy</h2>
+        </div>
+
+        <div class="form-helper">
+          <div>
+            <span>GitHub Fork URL</span>
+            <code>https://github.com/your-username/ritual-chain-workshop</code>
+          </div>
+          <div>
+            <span>Deployed Contract Address</span>
+            <code>0x... (42 chars including 0x)</code>
+          </div>
+          <div>
+            <span>Deploy Transaction Hash</span>
+            <code>0x... (66 chars including 0x)</code>
+          </div>
+          <div>
+            <span>A step you struggled with</span>
+            <code>Turning plaintext submission into commit-reveal and testing wrong-salt reveals.</code>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      Built as an unofficial community study guide. Do not enter private keys or seed phrases anywhere.
+    </footer>
+
+    <script src="./lib/commitment.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
