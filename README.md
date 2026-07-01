@@ -1,26 +1,20 @@
-# Privacy-Preserving Bounty Judge Launchpad
+# Ritual Bounty Operator
 
-Unofficial one-click launchpad and local helper for the Ritual Academy privacy-preserving AI bounty judge assignment.
+Unofficial single-screen wallet tool for the Ritual Academy privacy-preserving AI bounty judge assignment.
 
-This repository helps learners understand the commit-reveal pattern, generate local commitment hashes, prepare test plans, and organize Proof of Building deliverables. It is not affiliated with, endorsed by, or maintained by the Ritual team. It is designed to be opened directly from GitHub Pages or GitHub Codespaces.
+This is not an official Ritual resource and it is not a guaranteed assignment solution. It is a static dapp that helps participants do the repetitive browser-side work from one interface:
 
-Brand note: any Ritual names, logos, or marks belong to their respective owners and are used only to identify the workshop topic.
-
-## What This Is
-
-- A one-click browser launchpad for the assignment flow
-- A local `keccak256(abi.encode(answer, salt, msg.sender, bountyId))` helper
-- A checklist for the required commit-reveal assignment flow
-- Templates for README, test plan, and architecture notes
-- A static site that works in GitHub Codespaces and on GitHub Pages
-
-## What This Is Not
-
-- Not an official Ritual resource
-- Not a replacement for the official workshop repository
-- Not a one-click assignment solver
-- Not an auto-deploy tool
-- Not a tool that collects private keys, seed phrases, or wallet signatures
+- connect wallet
+- switch/add Ritual Chain
+- deploy a compiled contract from bytecode or a Hardhat artifact
+- save the deployed contract address
+- call `createBounty`
+- generate salt and commitment
+- call `submitCommitment`
+- call `revealAnswer`
+- call `judgeAll`
+- call `finalizeWinner`
+- prepare the Discord Proof of Building fields
 
 Official workshop repository:
 
@@ -28,36 +22,29 @@ Official workshop repository:
 https://github.com/cozfuttu/ritual-chain-workshop
 ```
 
+## Important Boundary
+
+The tool can send transactions, but it does not write or audit your Solidity for you. Users still need to update the official workshop contract correctly and compile it themselves.
+
+For deployment, paste either:
+
+- raw `0x...` contract creation bytecode, or
+- a Hardhat artifact JSON that contains a `bytecode` field
+
+For `judgeAll`, paste the `llmInput` bytes from the workshop encoder or your own Ritual LLM encoder. The browser tool does not invent a valid Ritual LLM payload.
+
 ## Security Model
 
-This helper is intentionally small and dependency-free.
-
 - No private key input
-- No wallet connection
+- No seed phrase input
 - No backend
 - No database
 - No analytics
 - No token approvals
-- No signature requests
+- Only wallet-confirmed transactions
 - Commitment calculation runs locally in the browser
 
-Users should still verify their final Solidity implementation and deployment transactions independently.
-
-## One-Click Use
-
-Open the live helper in your browser:
-
-```text
-https://ufuknode.github.io/privacy-bounty-judge-launchpad/
-```
-
-Open in GitHub Codespaces:
-
-```text
-https://codespaces.new/UfukNode/privacy-bounty-judge-launchpad?quickstart=1
-```
-
-Codespaces will install nothing, run `npm test`, start the static server, and forward port `5173`.
+The wallet confirmation screen is the final source of truth. Read every transaction before confirming.
 
 ## Run Locally
 
@@ -80,50 +67,32 @@ npm test
 The tests cover:
 
 - Keccak-256 known vectors
-- Minimal Solidity ABI encoding for the commitment formula
-- Static server routing and MIME behavior
+- Commitment ABI encoding
+- Contract action calldata encoding
+- Static server behavior
 
-## Run in GitHub Codespaces
+## GitHub Pages
 
-Use the one-click Codespaces URL:
+This repo does not need a GitHub Actions workflow. To publish it:
+
+1. Go to repository `Settings`.
+2. Open `Pages`.
+3. Select `Deploy from a branch`.
+4. Select branch `main` and folder `/root`.
+5. Save.
+
+The page will be available at:
+
+```text
+https://ufuknode.github.io/privacy-bounty-judge-launchpad/
+```
+
+## Codespaces
+
+Open:
 
 ```text
 https://codespaces.new/UfukNode/privacy-bounty-judge-launchpad?quickstart=1
 ```
 
-Or open the repository in Codespaces manually and run:
-
-```bash
-npm start
-```
-
-Then open the forwarded `5173` port from the Codespaces Ports panel.
-
-## Assignment Reminder
-
-The required track is commit-reveal:
-
-1. Participants submit only a commitment before the deadline.
-2. Participants reveal the answer and salt after the deadline.
-3. The contract verifies:
-
-```solidity
-keccak256(abi.encode(answer, salt, msg.sender, bountyId))
-```
-
-4. Only valid revealed submissions are eligible for AI judging.
-5. The AI review is advisory; the bounty owner finalizes the winner.
-
-## Suggested Sharing Note
-
-If sharing this with a cohort or Telegram group, use language like:
-
-```text
-Ritual Academy ödevi için unofficial bir yardımcı launchpad hazırladım. Commit-reveal mantığını anlatıyor, commitment hesaplıyor, test checklist veriyor ve Proof of Building için ne lazım gösteriyor. Resmi kaynak değil, ödevin hazır cevabı değil.
-```
-
-Longer Telegram copy is available at:
-
-```text
-templates/TELEGRAM_MESSAGE.md
-```
+The devcontainer starts the static server and forwards port `5173`.

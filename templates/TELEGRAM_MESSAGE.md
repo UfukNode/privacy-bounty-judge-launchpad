@@ -1,8 +1,8 @@
 # Telegram Share Message
 
-Kanka Ritual Academy ödevi için tek tık açılabilen yardımcı bir rehber hazırladım.
+Ritual Academy ödevi için tek arayüzden kullanılabilen unofficial bir tool hazırladım.
 
-Bu resmi Ritual kaynağı değil ve ödevin hazır cevabı değil. Sadece commit-reveal mantığını anlamak, commitment hesaplamak ve teslim checklist'ini takip etmek için.
+Bu resmi Ritual kaynağı değil. Ödevi sizin yerinize yazmıyor ama tarayıcıdan yapılacak işleri tek ekrana topluyor.
 
 Repo:
 
@@ -10,46 +10,54 @@ Repo:
 https://github.com/UfukNode/privacy-bounty-judge-launchpad
 ```
 
-Canlı sayfa:
+Ne yapıyor?
 
-```text
-https://ufuknode.github.io/privacy-bounty-judge-launchpad/
+- Wallet bağlanıyor.
+- Ritual Chain'e geçiyor / ağı ekliyor.
+- Hardhat artifact JSON veya 0x bytecode ile contract deploy ediyor.
+- Deploy contract address ve tx hash'i kaydediyor.
+- `createBounty` tx gönderiyor.
+- Salt üretiyor.
+- Commitment hesaplıyor.
+- `submitCommitment` tx gönderiyor.
+- `revealAnswer` tx gönderiyor.
+- `judgeAll` tx gönderiyor.
+- `finalizeWinner` tx gönderiyor.
+- Discord Proof of Building alanlarını tek pakette kopyalatıyor.
+
+Güvenlik:
+
+- Private key istemez.
+- Seed phrase istemez.
+- Backend yok.
+- Database yok.
+- Token approval yok.
+- Her işlem wallet confirmation ekranından geçer.
+
+Local çalıştırma:
+
+```bash
+git clone https://github.com/UfukNode/privacy-bounty-judge-launchpad.git
+cd privacy-bounty-judge-launchpad
+npm start
 ```
 
-Codespaces ile aç:
+Sonra:
+
+```text
+http://localhost:5173
+```
+
+Codespaces:
 
 ```text
 https://codespaces.new/UfukNode/privacy-bounty-judge-launchpad?quickstart=1
 ```
 
-Ne işe yarıyor?
-
-- Cevap + salt + wallet + bountyId girince commitment hesaplıyor.
-- Commit-reveal akışını basit anlatıyor.
-- Test checklist veriyor.
-- README ve architecture note template veriyor.
-- Discord Proof of Building formunda ne yazılacağını gösteriyor.
-
-Güvenlik:
-
-- Private key istemez.
-- Wallet bağlatmaz.
-- İmza istemez.
-- Backend yok.
-- Database yok.
-- Her şey lokal tarayıcıda çalışır.
-
-Özet akış:
-
-```text
-Deadline'dan önce: submitCommitment
-Deadline'dan sonra: revealAnswer
-Sonra owner: judgeAll
-En son: finalizeWinner
-```
-
-Asıl çalışmanız gereken resmi workshop repo:
+Asıl resmi workshop repo:
 
 ```text
 https://github.com/cozfuttu/ritual-chain-workshop
 ```
+
+Not: `judgeAll` için geçerli `llmInput` bytes değerini workshop encoder'dan veya kendi encoder'ınızdan almanız gerekiyor.

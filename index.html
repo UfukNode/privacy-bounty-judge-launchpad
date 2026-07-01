@@ -3,211 +3,261 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Privacy Bounty Judge Launchpad</title>
+    <title>Ritual Bounty Operator</title>
     <meta
       name="description"
-      content="Unofficial one-click launchpad and local commitment helper for commit-reveal bounty judge assignments."
+      content="Unofficial wallet tool for the Ritual Academy privacy-preserving bounty judge assignment."
     />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <header class="topbar">
-      <div class="brand">
-        <img src="./assets/ritual-logo.jpg" alt="Ritual-style geometric logo" />
-        <div>
-          <p class="eyebrow">Unofficial community launchpad</p>
-          <h1>Privacy-Preserving Bounty Judge</h1>
-        </div>
-      </div>
-      <a class="source-link" href="https://github.com/cozfuttu/ritual-chain-workshop" target="_blank" rel="noreferrer">
-        Official workshop repo
-      </a>
-    </header>
+    <main class="app-shell">
+      <section class="workspace" aria-label="Ritual bounty operator">
+        <header class="topbar">
+          <div class="brand-row">
+            <img class="brand-logo" src="./assets/ritual-logo.jpg" alt="" aria-hidden="true" />
+            <div>
+              <p class="eyebrow">Ritual Chain · unofficial</p>
+              <h1>Privacy Bounty Operator</h1>
+            </div>
+          </div>
+          <div class="wallet-actions">
+            <span class="status-pill" id="networkStatus">Not connected</span>
+            <button class="secondary-button" id="switchNetworkButton" type="button" disabled>Switch Ritual</button>
+            <button class="primary-button" id="connectButton" type="button">Connect Wallet</button>
+          </div>
+        </header>
 
-    <main class="layout">
-      <section class="panel wide launch-panel" aria-labelledby="launch-title">
-        <div class="panel-heading">
-          <p class="eyebrow">Tek tık başlangıç</p>
-          <h2 id="launch-title">Ödevi anlamak için buradan başla</h2>
-          <p>
-            Bu sayfa ödevi senin yerine yapmaz. Commit-reveal mantığını gösterir,
-            commitment hesaplar ve teslim checklist'ini düzenli takip ettirir.
-          </p>
-        </div>
-        <div class="launch-actions">
-          <a class="primary link-button" href="https://github.com/cozfuttu/ritual-chain-workshop" target="_blank" rel="noreferrer">
-            Official repo
-          </a>
-          <a class="secondary link-button" href="./templates/TELEGRAM_MESSAGE.md" target="_blank" rel="noreferrer">
-            Telegram metni
-          </a>
-          <a class="secondary link-button" href="https://codespaces.new/UfukNode/privacy-bounty-judge-launchpad?quickstart=1" target="_blank" rel="noreferrer">
-            Codespaces
-          </a>
-        </div>
-      </section>
+        <section class="status-grid" aria-label="Wallet status">
+          <div class="metric-panel">
+            <span class="metric-label">Wallet</span>
+            <strong class="metric-value" id="walletAddress">-</strong>
+          </div>
+          <div class="metric-panel">
+            <span class="metric-label">RITUAL balance</span>
+            <strong class="metric-value" id="walletBalance">-</strong>
+          </div>
+          <div class="metric-panel">
+            <span class="metric-label">Contract</span>
+            <strong class="metric-value" id="activeContractLabel">Not set</strong>
+          </div>
+        </section>
 
-      <section class="panel tool-panel" aria-labelledby="commitment-title">
-        <div class="panel-heading">
-          <p class="eyebrow">Local tool</p>
-          <h2 id="commitment-title">Commitment builder</h2>
-          <p>
-            Calculates the value for
-            <code>keccak256(abi.encode(answer, salt, msg.sender, bountyId))</code>.
-            Everything runs in this browser tab.
-          </p>
-        </div>
+        <nav class="task-tabs" aria-label="Operator sections">
+          <button class="task-tab is-active" type="button" data-tool-tab="setup">Setup</button>
+          <button class="task-tab" type="button" data-tool-tab="create">Create</button>
+          <button class="task-tab" type="button" data-tool-tab="commit">Commit</button>
+          <button class="task-tab" type="button" data-tool-tab="reveal">Reveal</button>
+          <button class="task-tab" type="button" data-tool-tab="judge">Judge</button>
+          <button class="task-tab" type="button" data-tool-tab="finalize">Finalize</button>
+          <button class="task-tab" type="button" data-tool-tab="proof">Proof</button>
+        </nav>
 
-        <form id="commitment-form" class="form-grid">
-          <label>
-            Answer
-            <textarea id="answer" rows="5" placeholder="Paste the answer you will later reveal"></textarea>
-          </label>
+        <div class="tool-grid">
+          <section class="tool-panel tool-view is-active" id="setupPanel" data-tool-panel="setup">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Step 0</p>
+                <h2>Setup and Deploy</h2>
+              </div>
+              <span class="chain-badge">Wallet tx</span>
+            </div>
 
-          <div class="field-row">
-            <label>
-              Salt bytes32
-              <input id="salt" spellcheck="false" placeholder="0x..." />
+            <label class="input-row" for="contractAddressInput">
+              <span>Existing AIJudge contract address</span>
+              <input id="contractAddressInput" spellcheck="false" placeholder="0x... deployed contract" />
             </label>
-            <button class="secondary" type="button" id="generate-salt">Generate</button>
-          </div>
+            <button class="secondary-button full-width" id="saveContractButton" type="button">Use Contract Address</button>
 
-          <label>
-            Wallet address
-            <input id="address" spellcheck="false" placeholder="0x... (40 hex chars)" />
-          </label>
+            <div class="divider"></div>
 
-          <label>
-            Bounty ID
-            <input id="bounty-id" inputmode="numeric" placeholder="1" />
-          </label>
+            <label class="input-row" for="artifactInput">
+              <span>Or paste Hardhat artifact JSON / raw bytecode</span>
+              <textarea id="artifactInput" rows="8" spellcheck="false" placeholder='Paste artifacts/contracts/AIJudge.sol/AIJudge.json or 0x bytecode'></textarea>
+            </label>
+            <button class="primary-button full-width" id="deployContractButton" type="button" disabled>Deploy Contract</button>
 
-          <button class="primary" type="submit">Calculate commitment</button>
-        </form>
+            <div class="activity-list" id="setupLog" aria-live="polite"></div>
+          </section>
 
-        <div class="result-box" aria-live="polite">
-          <span>bytes32 commitment</span>
-          <output id="commitment-output">Waiting for inputs</output>
-          <button class="secondary" type="button" data-copy-target="commitment-output">Copy</button>
-        </div>
+          <section class="tool-panel tool-view" id="createPanel" data-tool-panel="create">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Step 0.5</p>
+                <h2>Create Bounty</h2>
+              </div>
+              <span class="chain-badge">Payable</span>
+            </div>
 
-        <p id="tool-error" class="error" role="alert"></p>
-      </section>
+            <label class="input-row" for="bountyTitle">
+              <span>Title</span>
+              <input id="bountyTitle" placeholder="Privacy-preserving AI bounty judge" />
+            </label>
+            <label class="input-row" for="bountyRubric">
+              <span>Rubric</span>
+              <textarea id="bountyRubric" rows="5" placeholder="Explain how submissions should be judged"></textarea>
+            </label>
+            <div class="inline-grid">
+              <label class="input-row" for="bountyReward">
+                <span>Reward in RITUAL</span>
+                <input id="bountyReward" inputmode="decimal" placeholder="0.01" />
+              </label>
+              <label class="input-row" for="bountyDeadline">
+                <span>Deadline unix seconds</span>
+                <input id="bountyDeadline" inputmode="numeric" placeholder="1780000000" />
+              </label>
+              <button class="secondary-button" id="deadlineOneHourButton" type="button">+1 hour</button>
+            </div>
 
-      <section class="panel" aria-labelledby="flow-title">
-        <div class="panel-heading">
-          <p class="eyebrow">Assignment flow</p>
-          <h2 id="flow-title">What participants should build</h2>
-        </div>
+            <button class="primary-button full-width" id="createBountyButton" type="button" disabled>Create Bounty</button>
+            <div class="activity-list" id="createLog" aria-live="polite"></div>
+          </section>
 
-        <ol class="steps">
-          <li>
-            <strong>Fork the starter repo.</strong>
-            Work in your own copy of <code>cozfuttu/ritual-chain-workshop</code>.
-          </li>
-          <li>
-            <strong>Replace plaintext submissions.</strong>
-            Use <code>submitCommitment</code> during the submission phase.
-          </li>
-          <li>
-            <strong>Reveal after the deadline.</strong>
-            Verify answer, salt, sender, and bounty ID before storing the answer.
-          </li>
-          <li>
-            <strong>Judge only valid reveals.</strong>
-            Batch revealed answers into one Ritual LLM request.
-          </li>
-          <li>
-            <strong>Let the owner finalize.</strong>
-            AI review is advisory; the human owner transfers the reward.
-          </li>
-        </ol>
+          <section class="tool-panel tool-view" id="commitPanel" data-tool-panel="commit">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Step 1</p>
+                <h2>Commit Submission</h2>
+              </div>
+              <span class="chain-badge">Before deadline</span>
+            </div>
 
-        <div class="notice">
-          <strong>Study-guide boundary:</strong>
-          this repo explains the pattern and provides local helpers. It is not an official Ritual resource
-          and it is not a one-click assignment solver.
-        </div>
-      </section>
+            <label class="input-row" for="commitBountyId">
+              <span>Bounty ID</span>
+              <input id="commitBountyId" inputmode="numeric" placeholder="1" />
+            </label>
+            <label class="input-row" for="commitAnswer">
+              <span>Your answer</span>
+              <textarea id="commitAnswer" rows="6" placeholder="Write the answer you will reveal later"></textarea>
+            </label>
+            <div class="inline-grid">
+              <label class="input-row" for="commitSalt">
+                <span>Salt bytes32</span>
+                <input id="commitSalt" spellcheck="false" placeholder="0x..." />
+              </label>
+              <button class="secondary-button" id="generateSaltButton" type="button">Generate Salt</button>
+            </div>
 
-      <section class="panel wide" aria-labelledby="checklist-title">
-        <div class="panel-heading">
-          <p class="eyebrow">Submission checklist</p>
-          <h2 id="checklist-title">Before Proof of Building</h2>
-        </div>
+            <div class="result-box">
+              <span>Commitment</span>
+              <output id="commitmentOutput">Connect wallet and calculate</output>
+              <button class="secondary-button" type="button" data-copy-target="commitmentOutput">Copy</button>
+            </div>
 
-        <div class="checklist">
-          <label><input type="checkbox" /> Contract has <code>submitCommitment</code>.</label>
-          <label><input type="checkbox" /> Contract has <code>revealAnswer</code>.</label>
-          <label><input type="checkbox" /> Wrong salt or wrong sender cannot reveal.</label>
-          <label><input type="checkbox" /> Unrevealed entries cannot win.</label>
-          <label><input type="checkbox" /> README explains lifecycle, architecture, and reflection.</label>
-          <label><input type="checkbox" /> Contract is deployed and transaction hash is saved.</label>
-        </div>
-      </section>
+            <div class="action-row">
+              <button class="secondary-button" id="calculateCommitmentButton" type="button">Calculate</button>
+              <button class="primary-button" id="submitCommitmentButton" type="button" disabled>Submit Commitment</button>
+            </div>
 
-      <section class="panel wide" aria-labelledby="templates-title">
-        <div class="panel-heading">
-          <p class="eyebrow">Templates</p>
-          <h2 id="templates-title">Copyable starting points</h2>
-        </div>
+            <div class="activity-list" id="commitLog" aria-live="polite"></div>
+          </section>
 
-        <div class="template-grid">
-          <article>
-            <h3>README sections</h3>
-            <p>Lifecycle, security notes, and reflection prompt.</p>
-            <a href="./templates/README_SUBMISSION_TEMPLATE.md" target="_blank" rel="noreferrer">Open template</a>
-          </article>
-          <article>
-            <h3>Test plan</h3>
-            <p>Reveal edge cases to cover before deploy.</p>
-            <a href="./templates/TEST_PLAN.md" target="_blank" rel="noreferrer">Open template</a>
-          </article>
-          <article>
-            <h3>Architecture note</h3>
-            <p>Required track plus advanced Ritual-native design notes.</p>
-            <a href="./templates/ARCHITECTURE_NOTE.md" target="_blank" rel="noreferrer">Open template</a>
-          </article>
-          <article>
-            <h3>Solidity skeleton</h3>
-            <p>TODO-marked commit-reveal structure, not a final answer.</p>
-            <a href="./templates/AIJUDGE_COMMIT_REVEAL_SKELETON.sol" target="_blank" rel="noreferrer">Open skeleton</a>
-          </article>
-        </div>
-      </section>
+          <section class="tool-panel tool-view" id="revealPanel" data-tool-panel="reveal">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Step 2</p>
+                <h2>Reveal Answer</h2>
+              </div>
+              <span class="chain-badge warning">After deadline</span>
+            </div>
 
-      <section class="panel wide" aria-labelledby="discord-title">
-        <div class="panel-heading">
-          <p class="eyebrow">Discord form helper</p>
-          <h2 id="discord-title">Fields to save after deploy</h2>
-        </div>
+            <label class="input-row" for="revealBountyId">
+              <span>Bounty ID</span>
+              <input id="revealBountyId" inputmode="numeric" placeholder="1" />
+            </label>
+            <label class="input-row" for="revealAnswer">
+              <span>Same answer</span>
+              <textarea id="revealAnswer" rows="6" placeholder="Paste the exact answer used for commit"></textarea>
+            </label>
+            <label class="input-row" for="revealSalt">
+              <span>Same salt</span>
+              <input id="revealSalt" spellcheck="false" placeholder="0x..." />
+            </label>
+            <button class="primary-button full-width" id="revealButton" type="button" disabled>Reveal Answer</button>
+            <div class="activity-list" id="revealLog" aria-live="polite"></div>
+          </section>
 
-        <div class="form-helper">
-          <div>
-            <span>GitHub Fork URL</span>
-            <code>https://github.com/your-username/ritual-chain-workshop</code>
-          </div>
-          <div>
-            <span>Deployed Contract Address</span>
-            <code>0x... (42 chars including 0x)</code>
-          </div>
-          <div>
-            <span>Deploy Transaction Hash</span>
-            <code>0x... (66 chars including 0x)</code>
-          </div>
-          <div>
-            <span>A step you struggled with</span>
-            <code>Turning plaintext submission into commit-reveal and testing wrong-salt reveals.</code>
-          </div>
+          <section class="tool-panel tool-view" id="judgePanel" data-tool-panel="judge">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Step 3</p>
+                <h2>Judge All</h2>
+              </div>
+              <span class="chain-badge">Owner only</span>
+            </div>
+
+            <label class="input-row" for="judgeBountyId">
+              <span>Bounty ID</span>
+              <input id="judgeBountyId" inputmode="numeric" placeholder="1" />
+            </label>
+            <label class="input-row" for="llmInput">
+              <span>LLM input bytes</span>
+              <textarea id="llmInput" rows="8" spellcheck="false" placeholder="0x... from your Ritual LLM encoder"></textarea>
+            </label>
+            <button class="primary-button full-width" id="judgeButton" type="button" disabled>Call judgeAll</button>
+            <div class="notice">
+              This tool sends the transaction. It does not invent the Ritual LLM payload.
+              Use the workshop frontend/encoder or your own encoder for real judging.
+            </div>
+            <div class="activity-list" id="judgeLog" aria-live="polite"></div>
+          </section>
+
+          <section class="tool-panel tool-view" id="finalizePanel" data-tool-panel="finalize">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Step 4</p>
+                <h2>Finalize Winner</h2>
+              </div>
+              <span class="chain-badge">Owner only</span>
+            </div>
+
+            <label class="input-row" for="finalizeBountyId">
+              <span>Bounty ID</span>
+              <input id="finalizeBountyId" inputmode="numeric" placeholder="1" />
+            </label>
+            <label class="input-row" for="winnerIndex">
+              <span>Winner index</span>
+              <input id="winnerIndex" inputmode="numeric" placeholder="0" />
+            </label>
+            <button class="primary-button full-width" id="finalizeButton" type="button" disabled>Finalize Winner</button>
+            <div class="activity-list" id="finalizeLog" aria-live="polite"></div>
+          </section>
+
+          <section class="tool-panel tool-view" id="proofPanel" data-tool-panel="proof">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Discord</p>
+                <h2>Proof of Building Pack</h2>
+              </div>
+              <span class="chain-badge neutral">Copy fields</span>
+            </div>
+
+            <label class="input-row" for="forkUrl">
+              <span>GitHub fork URL</span>
+              <input id="forkUrl" placeholder="https://github.com/yourname/ritual-chain-workshop" />
+            </label>
+            <label class="input-row" for="proofContract">
+              <span>Deployed contract address</span>
+              <input id="proofContract" spellcheck="false" placeholder="0x..." />
+            </label>
+            <label class="input-row" for="deployHash">
+              <span>Deploy transaction hash</span>
+              <input id="deployHash" spellcheck="false" placeholder="0x..." />
+            </label>
+            <label class="input-row" for="struggleNote">
+              <span>A step you struggled with</span>
+              <textarea id="struggleNote" rows="4">I struggled with turning plaintext submissions into a commit-reveal flow and testing wrong-salt reveal cases.</textarea>
+            </label>
+
+            <pre class="command-box" id="proofPack"></pre>
+            <button class="secondary-button full-width" id="copyProofButton" type="button">Copy Proof Pack</button>
+          </section>
         </div>
       </section>
     </main>
 
-    <footer class="footer">
-      Built as an unofficial community study guide. Do not enter private keys or seed phrases anywhere.
-    </footer>
-
     <script src="./lib/commitment.js"></script>
+    <script src="./lib/evm.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>

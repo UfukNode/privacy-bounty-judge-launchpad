@@ -29,7 +29,7 @@ test("serves the static app index", async () => {
 
     assert.equal(response.status, 200);
     assert.match(response.headers.get("content-type"), /text\/html/);
-    assert.match(html, /Privacy-Preserving Bounty Judge/);
+    assert.match(html, /Privacy Bounty Operator/);
   } finally {
     await close(server);
   }

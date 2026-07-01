@@ -97,7 +97,7 @@ if (require.main === module) {
   const server = createStaticServer();
 
   server.listen(port, "0.0.0.0", () => {
-    console.log(`Privacy Bounty Judge Study Guide running at http://localhost:${port}`);
+    console.log(`Ritual Bounty Operator running at http://localhost:${port}`);
   });
 }
 
