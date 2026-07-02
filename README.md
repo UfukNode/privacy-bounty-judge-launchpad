@@ -13,6 +13,7 @@ This is not an official Ritual resource and it is not a guaranteed assignment so
 - generate salt and commitment
 - call `submitCommitment`
 - call `revealAnswer`
+- check/deposit RitualWallet LLM fees
 - generate Ritual LLM input from revealed submissions
 - call `judgeAll`
 - call `finalizeWinner`
@@ -39,6 +40,8 @@ For compile/deploy, either:
 - paste a Hardhat artifact JSON that contains a `bytecode` field
 
 For `judgeAll`, click `Generate LLM Input` after at least one answer is revealed. The tool reads the bounty and revealed submissions, builds the batch prompt, and ABI-encodes the Ritual LLM payload.
+
+Judging spends prepaid RitualWallet funds, not the bounty reward. Use `Deposit LLM Fees (0.05 RITUAL)` in the Judge tab before calling `judgeAll` if the fee wallet is not ready.
 
 ## Security Model
 

@@ -9,6 +9,9 @@ test("function selectors match expected signatures", () => {
   assert.equal(evm.selector("judgeAll(uint256,bytes)"), "0xd8964ee9");
   assert.equal(evm.selector("finalizeWinner(uint256,uint256)"), "0x5a7722f1");
   assert.equal(evm.selector("getSubmission(uint256,uint256)"), "0xb7ed7071");
+  assert.equal(evm.selector("deposit(uint256)"), "0xb6b55f25");
+  assert.equal(evm.selector("balanceOf(address)"), "0x70a08231");
+  assert.equal(evm.selector("lockUntil(address)"), "0xeba74ee9");
 });
 
 test("encodes createBounty calldata with two dynamic strings", () => {
@@ -116,4 +119,16 @@ test("builds a non-empty Ritual LLM input payload", () => {
   assert.match(input, /^0x[0-9a-f]+$/i);
   assert.ok(input.length > 1000);
   assert.match(input, /7a61692d6f72672f474c4d2d342e372d465038/i);
+});
+
+test("encodes RitualWallet funding calls", () => {
+  const user = "0xbc4ebf8bb59ceb2774658c1b30eb2e2c257ac7c7";
+
+  assert.equal(
+    evm.encodeRitualWalletDeposit({ lockDuration: 100000n }),
+    `0xb6b55f25${"0".repeat(59)}186a0`
+  );
+  assert.equal(evm.encodeRitualWalletBalanceOf({ user }).slice(0, 10), "0x70a08231");
+  assert.equal(evm.encodeRitualWalletLockUntil({ user }).slice(0, 10), "0xeba74ee9");
+  assert.equal(evm.decodeUint256(evm.word(123n)), 123n);
 });

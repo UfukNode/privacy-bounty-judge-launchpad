@@ -216,6 +216,12 @@
               <span>LLM executor address</span>
               <input id="llmExecutorAddress" spellcheck="false" value="0x0000000000000000000000000000000000000802" />
             </label>
+            <div class="result-box">
+              <span>LLM fee wallet</span>
+              <output id="ritualWalletStatus">Check funding before judging</output>
+              <button class="secondary-button" id="refreshRitualWalletButton" type="button">Check</button>
+            </div>
+            <button class="secondary-button full-width" id="depositLlmFeesButton" type="button">Deposit LLM Fees (0.05 RITUAL)</button>
             <label class="input-row" for="llmInput">
               <span>LLM input bytes</span>
               <textarea id="llmInput" rows="8" spellcheck="false" placeholder="Click Generate LLM Input after at least one answer is revealed"></textarea>
@@ -226,6 +232,7 @@
             </div>
             <div class="notice">
               The tool reads revealed submissions, builds the batch prompt, and encodes the Ritual LLM payload.
+              Judging also needs prepaid locked funds in RitualWallet.
               AI review is advisory; the owner still finalizes the winner.
             </div>
             <div class="activity-list" id="judgeLog" aria-live="polite"></div>

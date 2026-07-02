@@ -22,6 +22,7 @@ Ne yapıyor?
 - Commitment hesaplıyor.
 - `submitCommitment` tx gönderiyor.
 - `revealAnswer` tx gönderiyor.
+- Judge için RitualWallet LLM fee deposit kontrolü yapıyor.
 - Revealed cevaplardan LLM input bytes üretip `judgeAll` tx gönderiyor.
 - `finalizeWinner` tx gönderiyor.
 - Discord Proof of Building alanlarını tek pakette kopyalatıyor.

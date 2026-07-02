@@ -7,6 +7,11 @@ const RITUAL_CHAIN = {
 };
 
 const EXPLORER = "https://explorer.ritualfoundation.org";
+const RITUAL_WALLET = "0x532F0dF0896F353d8C3DD8cc134e8129DA2a3948";
+const MIN_LLM_BALANCE_WEI = 50_000_000_000_000_000n;
+const LLM_DEPOSIT_WEI = 50_000_000_000_000_000n;
+const LLM_LOCK_DURATION = 100_000n;
+const LLM_REQUIRED_TTL_BUFFER = 300n;
 
 const state = {
   provider: null,
@@ -66,6 +71,9 @@ const els = {
   revealLog: $("#revealLog"),
   judgeBountyId: $("#judgeBountyId"),
   llmExecutorAddress: $("#llmExecutorAddress"),
+  ritualWalletStatus: $("#ritualWalletStatus"),
+  refreshRitualWalletButton: $("#refreshRitualWalletButton"),
+  depositLlmFeesButton: $("#depositLlmFeesButton"),
   llmInput: $("#llmInput"),
   generateLlmInputButton: $("#generateLlmInputButton"),
   judgeButton: $("#judgeButton"),
@@ -185,6 +193,10 @@ function readHexBytes(input, label, { allowEmpty = false } = {}) {
 
 function formatEther(hexWei) {
   const wei = BigInt(hexWei || "0x0");
+  return formatWei(wei);
+}
+
+function formatWei(wei) {
   const whole = wei / 10n ** 18n;
   const fraction = (wei % 10n ** 18n).toString().padStart(18, "0").slice(0, 4);
   return `${whole}.${fraction} RITUAL`;
@@ -292,6 +304,97 @@ async function readBountyDetails(bountyId) {
     EvmTools.encodeGetBounty({ bountyId })
   );
   return EvmTools.decodeGetBountyDetails(result);
+}
+
+async function callAddress(address, data) {
+  requireWallet();
+  requireRitual();
+
+  try {
+    return await request("eth_call", [
+      {
+        from: state.account,
+        to: normalizeAddress(address),
+        data
+      },
+      "latest"
+    ]);
+  } catch (err) {
+    throw new Error(readableRpcError(err));
+  }
+}
+
+async function readRitualWalletStatus() {
+  requireWallet();
+  requireRitual();
+
+  const [balanceHex, lockUntilHex, currentBlockHex] = await Promise.all([
+    callAddress(RITUAL_WALLET, EvmTools.encodeRitualWalletBalanceOf({ user: state.account })),
+    callAddress(RITUAL_WALLET, EvmTools.encodeRitualWalletLockUntil({ user: state.account })),
+    request("eth_blockNumber")
+  ]);
+
+  const balance = EvmTools.decodeUint256(balanceHex);
+  const lockUntil = EvmTools.decodeUint256(lockUntilHex);
+  const currentBlock = BigInt(currentBlockHex);
+  const hasEnoughBalance = balance >= MIN_LLM_BALANCE_WEI;
+  const hasEnoughLock = lockUntil >= currentBlock + LLM_REQUIRED_TTL_BUFFER;
+
+  return {
+    balance,
+    lockUntil,
+    currentBlock,
+    ready: hasEnoughBalance && hasEnoughLock
+  };
+}
+
+function renderRitualWalletStatus(status) {
+  const lockText = `locked until ${status.lockUntil}, current block ${status.currentBlock}`;
+  els.ritualWalletStatus.textContent = status.ready
+    ? `Ready: ${formatWei(status.balance)} (${lockText})`
+    : `Needs deposit: ${formatWei(status.balance)} (${lockText})`;
+}
+
+async function refreshRitualWalletStatus() {
+  try {
+    const status = await readRitualWalletStatus();
+    renderRitualWalletStatus(status);
+    log(els.judgeLog, status.ready ? "RitualWallet is ready for judging" : "RitualWallet needs LLM fee deposit", status.ready ? "ok" : "error");
+    return status;
+  } catch (err) {
+    log(els.judgeLog, err.message, "error");
+    throw err;
+  }
+}
+
+async function requireRitualWalletReady() {
+  const status = await readRitualWalletStatus();
+  renderRitualWalletStatus(status);
+
+  if (!status.ready) {
+    throw new Error("Deposit LLM Fees first. Judge uses RitualWallet prepaid locked funds.");
+  }
+
+  return status;
+}
+
+async function depositLlmFees() {
+  setBusy(els.depositLlmFeesButton, true, "Depositing...");
+  try {
+    const hash = await sendTransaction({
+      to: RITUAL_WALLET,
+      data: EvmTools.encodeRitualWalletDeposit({ lockDuration: LLM_LOCK_DURATION }),
+      value: toHexQuantity(LLM_DEPOSIT_WEI)
+    });
+    log(els.judgeLog, `RitualWallet deposit tx: ${hash}`, "ok", txLink(hash));
+    await waitForReceipt(hash);
+    log(els.judgeLog, "RitualWallet deposit confirmed", "ok");
+    await refreshRitualWalletStatus();
+  } catch (err) {
+    log(els.judgeLog, err.message, "error");
+  } finally {
+    setBusy(els.depositLlmFeesButton, false);
+  }
 }
 
 async function requireExistingBounty(bountyId) {
@@ -498,7 +601,7 @@ async function waitForReceipt(hash) {
   throw new Error("Transaction sent, but receipt did not arrive in time");
 }
 
-async function sendTransaction({ to, data, value = "0x0" }) {
+async function sendTransaction({ to, data, value = "0x0", simulate = true }) {
   requireWallet();
   requireRitual();
   const tx = {
@@ -508,7 +611,9 @@ async function sendTransaction({ to, data, value = "0x0" }) {
   };
   if (to) tx.to = to;
 
-  await simulateTransaction(tx);
+  if (simulate) {
+    await simulateTransaction(tx);
+  }
   return request("eth_sendTransaction", [tx]);
 }
 
@@ -744,13 +849,14 @@ async function judgeAll() {
     const bountyId = readPositiveInteger(els.judgeBountyId, "Bounty ID");
     const status = await requireExistingBounty(bountyId);
     assertReadyForJudge(status);
+    await requireRitualWalletReady();
     const llmInput = els.llmInput.value.trim() || await generateLlmInput({ quiet: true });
 
     const data = EvmTools.encodeJudgeAll({
       bountyId,
       llmInput: readHexBytes({ value: llmInput }, "LLM input bytes")
     });
-    const hash = await sendTransaction({ to: requireContract(), data });
+    const hash = await sendTransaction({ to: requireContract(), data, simulate: false });
     log(els.judgeLog, `judgeAll tx: ${hash}`, "ok", txLink(hash));
     await waitForReceipt(hash);
     log(els.judgeLog, "Judge transaction confirmed", "ok");
@@ -887,6 +993,8 @@ function init() {
   });
   els.submitCommitmentButton.addEventListener("click", submitCommitment);
   els.revealButton.addEventListener("click", revealAnswer);
+  els.refreshRitualWalletButton.addEventListener("click", () => refreshRitualWalletStatus().catch(() => {}));
+  els.depositLlmFeesButton.addEventListener("click", depositLlmFees);
   els.generateLlmInputButton.addEventListener("click", () => generateLlmInput().catch(() => {}));
   els.judgeButton.addEventListener("click", judgeAll);
   els.finalizeButton.addEventListener("click", finalizeWinner);
