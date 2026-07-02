@@ -51,4 +51,6 @@ test("parses raw bytecode and Hardhat artifact bytecode", () => {
   assert.equal(evm.parseArtifactBytecode("0x6000"), "0x6000");
   assert.equal(evm.parseArtifactBytecode(JSON.stringify({ bytecode: "0x6001" })), "0x6001");
   assert.equal(evm.parseArtifactBytecode(JSON.stringify({ bytecode: { object: "0x6002" } })), "0x6002");
+  assert.throws(() => evm.parseArtifactBytecode("Or paste Hardhat artifact JSON / raw bytecode"), /placeholder text/);
+  assert.throws(() => evm.parseArtifactBytecode("not json"), /valid JSON/);
 });

@@ -64,16 +64,16 @@
             </div>
 
             <label class="input-row" for="contractAddressInput">
-              <span>Existing AIJudge contract address</span>
-              <input id="contractAddressInput" spellcheck="false" placeholder="0x... deployed contract" />
+              <span>Already deployed AIJudge contract address</span>
+              <input id="contractAddressInput" spellcheck="false" placeholder="Paste real 0x contract address only" />
             </label>
             <button class="secondary-button full-width" id="saveContractButton" type="button">Use Contract Address</button>
 
             <div class="divider"></div>
 
             <label class="input-row" for="artifactInput">
-              <span>Or paste Hardhat artifact JSON / raw bytecode</span>
-              <textarea id="artifactInput" rows="8" spellcheck="false" placeholder='Paste artifacts/contracts/AIJudge.sol/AIJudge.json or 0x bytecode'></textarea>
+              <span>Or deploy from compiled artifact / bytecode</span>
+              <textarea id="artifactInput" rows="8" spellcheck="false" placeholder='Paste the full AIJudge.json artifact content, or paste raw 0x bytecode'></textarea>
             </label>
             <button class="primary-button full-width" id="deployContractButton" type="button" disabled>Deploy Contract</button>
 

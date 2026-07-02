@@ -163,6 +163,9 @@ async function refreshWallet() {
 }
 
 function setContract(address) {
+  if (!String(address || "").trim()) {
+    throw new Error("Paste a real deployed contract address first");
+  }
   state.contractAddress = normalizeAddress(address);
   localStorage.setItem("operator.contractAddress", state.contractAddress);
   els.contractAddressInput.value = state.contractAddress;
@@ -446,7 +449,7 @@ function init() {
       setContract(els.contractAddressInput.value);
       log(els.setupLog, "Contract address saved", "ok", addressLink(state.contractAddress));
     } catch (err) {
-      log(els.setupLog, err.message, "error");
+      log(els.setupLog, `Contract address problem: ${err.message}`, "error");
     }
   });
   els.deployContractButton.addEventListener("click", deployContract);
