@@ -7,6 +7,8 @@ const RITUAL_CHAIN = {
 };
 
 const EXPLORER = "https://explorer.ritualfoundation.org";
+const DEFAULT_LLM_EXECUTOR = "0xB42e435c4252A5a2E7440e37B609F00c61a0c91B";
+const LLM_PRECOMPILE_ADDRESS = "0x0000000000000000000000000000000000000802";
 const RITUAL_WALLET = "0x532F0dF0896F353d8C3DD8cc134e8129DA2a3948";
 const MIN_LLM_BALANCE_WEI = 50_000_000_000_000_000n;
 const LLM_DEPOSIT_WEI = 50_000_000_000_000_000n;
@@ -189,6 +191,14 @@ function readHexBytes(input, label, { allowEmpty = false } = {}) {
     throw new Error(`${label} cannot be empty`);
   }
   return value;
+}
+
+function readLlmExecutorAddress() {
+  const address = normalizeAddress(els.llmExecutorAddress.value || DEFAULT_LLM_EXECUTOR);
+  if (address === LLM_PRECOMPILE_ADDRESS) {
+    throw new Error("Executor address cannot be the 0x0802 precompile. Use the registered TEE executor default, then Generate LLM Input again.");
+  }
+  return address;
 }
 
 function formatEther(hexWei) {
@@ -822,7 +832,7 @@ async function generateLlmInput({ quiet = false } = {}) {
     }
 
     const llmInput = EvmTools.buildJudgeAllLlmInput({
-      executorAddress: normalizeAddress(els.llmExecutorAddress.value),
+      executorAddress: readLlmExecutorAddress(),
       title: bounty.title,
       rubric: bounty.rubric,
       submissions

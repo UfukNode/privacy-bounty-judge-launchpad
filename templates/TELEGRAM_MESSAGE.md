@@ -63,4 +63,4 @@ Asıl resmi workshop repo:
 https://github.com/cozfuttu/ritual-chain-workshop
 ```
 
-Not: Tool compile/deploy/tx tarafını tek arayüze alır. `judgeAll` için `Generate LLM Input` butonu bounty bilgilerini ve revealed cevapları okuyup payload'ı üretir.
+Not: Tool compile/deploy/tx tarafını tek arayüze alır. `judgeAll` için `Generate LLM Input` butonu bounty bilgilerini ve revealed cevapları okuyup registered LLM executor adresiyle payload'ı üretir.

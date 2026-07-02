@@ -104,7 +104,7 @@ test("decodes getSubmission return data", () => {
 
 test("builds a non-empty Ritual LLM input payload", () => {
   const input = evm.buildJudgeAllLlmInput({
-    executorAddress: "0x0000000000000000000000000000000000000802",
+    executorAddress: "0xB42e435c4252A5a2E7440e37B609F00c61a0c91B",
     title: "Privacy Preserving AI Bounty Judge",
     rubric: "Judge correctness and privacy reasoning.",
     submissions: [
@@ -118,6 +118,7 @@ test("builds a non-empty Ritual LLM input payload", () => {
 
   assert.match(input, /^0x[0-9a-f]+$/i);
   assert.ok(input.length > 1000);
+  assert.match(input, /b42e435c4252a5a2e7440e37b609f00c61a0c91b/i);
   assert.match(input, /7a61692d6f72672f474c4d2d342e372d465038/i);
 });
 

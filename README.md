@@ -43,6 +43,8 @@ For `judgeAll`, click `Generate LLM Input` after at least one answer is revealed
 
 Judging spends prepaid RitualWallet funds, not the bounty reward. Use `Deposit LLM Fees (0.05 RITUAL)` in the Judge tab before calling `judgeAll` if the fee wallet is not ready.
 
+Use the registered LLM executor address shown in the Judge tab. Do not use the `0x...0802` precompile address as the executor; it is only the precompile call target inside the contract.
+
 ## Security Model
 
 - No private key input
