@@ -93,6 +93,10 @@ function compileSolidity({ aiJudgeSource, precompileConsumerSource, contractName
     throw new Error("Paste AIJudge.sol source before compiling");
   }
 
+  if (!new RegExp(`contract\\s+${contractName}\\b`).test(String(aiJudgeSource))) {
+    throw new Error(`${contractName}.sol source must contain 'contract ${contractName}'. Do not paste PrecompileConsumer.sol into the AIJudge box.`);
+  }
+
   const sources = {
     "contracts/AIJudge.sol": { content: String(aiJudgeSource) },
     "contracts/utils/PrecompileConsumer.sol": {

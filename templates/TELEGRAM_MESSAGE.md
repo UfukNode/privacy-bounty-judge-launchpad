@@ -14,7 +14,7 @@ Ne yapıyor?
 
 - Wallet bağlanıyor.
 - Ritual Chain'e geçiyor / ağı ekliyor.
-- `AIJudge.sol` kodunu arayüzden compile ediyor.
+- Default commit-reveal `AIJudge.sol` kodunu otomatik yüklüyor ve arayüzden compile ediyor.
 - Hardhat artifact JSON veya 0x bytecode ile contract deploy ediyor.
 - Deploy contract address ve tx hash'i kaydediyor.
 - `createBounty` tx gönderiyor.

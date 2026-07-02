@@ -76,15 +76,16 @@
               <textarea id="aiJudgeSource" rows="10" spellcheck="false" placeholder="Paste your updated hardhat/contracts/AIJudge.sol source here"></textarea>
             </label>
             <div class="notice">
+              Default contract sources load automatically. Use them unless you know exactly what you are changing.
               Compile works when this tool is running with <code>npm start</code> or Codespaces.
-              If you open a static GitHub Pages copy, use precompiled artifact/bytecode instead.
             </div>
             <label class="input-row" for="precompileSource">
               <span>utils/PrecompileConsumer.sol source</span>
               <textarea id="precompileSource" rows="7" spellcheck="false" placeholder="Default import source loads here automatically"></textarea>
             </label>
             <div class="action-row">
-              <button class="secondary-button" id="loadPrecompileButton" type="button">Load Default Import</button>
+              <button class="secondary-button" id="loadDefaultContractButton" type="button">Load Default Contract</button>
+              <button class="secondary-button" id="loadPrecompileButton" type="button">Load Import Only</button>
               <button class="primary-button" id="compileButton" type="button">Compile Contract</button>
             </div>
             <div class="activity-list" id="compileLog" aria-live="polite"></div>

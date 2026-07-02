@@ -6,7 +6,7 @@ This is not an official Ritual resource and it is not a guaranteed assignment so
 
 - connect wallet
 - switch/add Ritual Chain
-- compile pasted `AIJudge.sol` source with `solc`
+- load and compile the default commit-reveal `AIJudge.sol` with `solc`
 - deploy a compiled contract from bytecode or a Hardhat artifact
 - save the deployed contract address
 - call `createBounty`
@@ -25,11 +25,11 @@ https://github.com/cozfuttu/ritual-chain-workshop
 
 ## Important Boundary
 
-The tool can compile and send transactions, but it does not write or audit your Solidity for you. Users still need to update the official workshop contract correctly before compiling.
+The tool can load the default assignment contract, compile it, and send transactions. Users can still edit the Solidity before compiling, but the default path does not require copy-pasting contract code.
 
 For compile/deploy, either:
 
-- paste `AIJudge.sol` source and click `Compile Contract`, or
+- click `Load Default Contract`, then `Compile Contract`, or
 - paste raw `0x...` contract creation bytecode, or
 - paste a Hardhat artifact JSON that contains a `bytecode` field
 

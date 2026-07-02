@@ -31,6 +31,7 @@ const els = {
   saveContractButton: $("#saveContractButton"),
   aiJudgeSource: $("#aiJudgeSource"),
   precompileSource: $("#precompileSource"),
+  loadDefaultContractButton: $("#loadDefaultContractButton"),
   loadPrecompileButton: $("#loadPrecompileButton"),
   compileButton: $("#compileButton"),
   compileLog: $("#compileLog"),
@@ -286,9 +287,25 @@ async function loadDefaultPrecompile() {
   els.precompileSource.value = await response.text();
 }
 
+async function loadDefaultAIJudge() {
+  const response = await fetch("./templates/AIJudge.sol");
+  if (!response.ok) {
+    throw new Error("Could not load default AIJudge.sol");
+  }
+  els.aiJudgeSource.value = await response.text();
+}
+
+async function loadDefaultSources() {
+  await Promise.all([loadDefaultAIJudge(), loadDefaultPrecompile()]);
+}
+
 async function compileContract() {
   setBusy(els.compileButton, true, "Compiling...");
   try {
+    if (!/contract\s+AIJudge\b/.test(els.aiJudgeSource.value)) {
+      throw new Error("AIJudge.sol source must contain `contract AIJudge`. Click `Load Default Contract`, then compile again.");
+    }
+
     if (!els.precompileSource.value.trim()) {
       await loadDefaultPrecompile();
     }
@@ -507,6 +524,11 @@ function init() {
     }
   });
   els.deployContractButton.addEventListener("click", deployContract);
+  els.loadDefaultContractButton.addEventListener("click", () => {
+    loadDefaultSources()
+      .then(() => log(els.compileLog, "Default AIJudge.sol and import loaded", "ok"))
+      .catch((err) => log(els.compileLog, err.message, "error"));
+  });
   els.loadPrecompileButton.addEventListener("click", () => {
     loadDefaultPrecompile()
       .then(() => log(els.compileLog, "Default PrecompileConsumer.sol loaded", "ok"))
@@ -543,6 +565,10 @@ function init() {
   [els.forkUrl, els.proofContract, els.deployHash, els.struggleNote].forEach((input) => {
     input.addEventListener("input", updateProofPack);
   });
+
+  loadDefaultSources()
+    .then(() => log(els.compileLog, "Default contract loaded. Click Compile Contract.", "ok"))
+    .catch((err) => log(els.compileLog, err.message, "error"));
 
   if (window.ethereum?.selectedAddress) {
     connectWallet().catch(() => {});

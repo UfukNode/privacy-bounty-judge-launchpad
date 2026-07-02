@@ -1,4 +1,5 @@
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
 const test = require("node:test");
 const path = require("node:path");
 const { createStaticServer, getContentType, resolveRequestPath } = require("../serve");
@@ -74,6 +75,66 @@ contract AIJudge {
     assert.equal(result.ok, true);
     assert.equal(result.contractName, "AIJudge");
     assert.match(result.artifact.bytecode, /^0x[0-9a-f]+$/i);
+  } finally {
+    await close(server);
+  }
+});
+
+test("compiles the bundled default AIJudge template", async () => {
+  const server = createStaticServer({ rootDir: path.resolve(__dirname, "..") });
+  const baseUrl = await listen(server);
+
+  try {
+    const aiJudgeSource = fs.readFileSync(path.resolve(__dirname, "../templates/AIJudge.sol"), "utf8");
+    const precompileConsumerSource = fs.readFileSync(
+      path.resolve(__dirname, "../templates/PrecompileConsumer.sol"),
+      "utf8"
+    );
+    const response = await fetch(`${baseUrl}/api/compile`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contractName: "AIJudge",
+        aiJudgeSource,
+        precompileConsumerSource
+      })
+    });
+    const result = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(result.ok, true);
+    assert.equal(result.contractName, "AIJudge");
+    assert.match(result.artifact.bytecode, /^0x[0-9a-f]+$/i);
+    assert.ok(result.artifact.abi.some((item) => item.name === "submitCommitment"));
+    assert.ok(result.artifact.abi.some((item) => item.name === "revealAnswer"));
+  } finally {
+    await close(server);
+  }
+});
+
+test("rejects pasting only PrecompileConsumer into the AIJudge source field", async () => {
+  const server = createStaticServer({ rootDir: path.resolve(__dirname, "..") });
+  const baseUrl = await listen(server);
+
+  try {
+    const precompileConsumerSource = fs.readFileSync(
+      path.resolve(__dirname, "../templates/PrecompileConsumer.sol"),
+      "utf8"
+    );
+    const response = await fetch(`${baseUrl}/api/compile`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contractName: "AIJudge",
+        aiJudgeSource: precompileConsumerSource,
+        precompileConsumerSource
+      })
+    });
+    const result = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.equal(result.ok, false);
+    assert.match(result.errors.join("\n"), /Do not paste PrecompileConsumer/);
   } finally {
     await close(server);
   }
