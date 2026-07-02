@@ -19,6 +19,8 @@ This is not an official Ritual resource and it is not a guaranteed assignment so
 
 The UI checks common revert cases before sending wallet transactions. If `Create Bounty` did not succeed, `Commit`, `Reveal`, `Judge`, and `Finalize` stop with a local error instead of burning gas on a known-bad transaction.
 
+Ritual testnet block timestamps may appear in millisecond scale. The bundled `AIJudge.sol` normalizes that internally, so the UI still accepts normal Unix seconds. If you previously deployed an older contract and saw `deadline must be future`, compile and deploy the updated default contract again.
+
 Official workshop repository:
 
 ```text

@@ -356,11 +356,17 @@ function setContract(address) {
   if (!String(address || "").trim()) {
     throw new Error("Paste a real deployed contract address first");
   }
-  state.contractAddress = normalizeAddress(address);
+  const nextAddress = normalizeAddress(address);
+  const changed = state.contractAddress && state.contractAddress.toLowerCase() !== nextAddress.toLowerCase();
+
+  state.contractAddress = nextAddress;
   localStorage.setItem("operator.contractAddress", state.contractAddress);
   els.contractAddressInput.value = state.contractAddress;
   els.proofContract.value = state.contractAddress;
   els.activeContractLabel.textContent = shortAddress(state.contractAddress);
+  if (changed) {
+    clearCurrentBountyId();
+  }
   updateProofPack();
   updateButtons();
 }
@@ -381,6 +387,16 @@ function setCurrentBountyId(bountyId) {
   els.revealBountyId.value = value;
   els.judgeBountyId.value = value;
   els.finalizeBountyId.value = value;
+}
+
+function clearCurrentBountyId() {
+  state.currentBountyId = "";
+  localStorage.removeItem("operator.currentBountyId");
+
+  els.commitBountyId.value = "";
+  els.revealBountyId.value = "";
+  els.judgeBountyId.value = "";
+  els.finalizeBountyId.value = "";
 }
 
 function bountyIdFromReceipt(receipt) {
@@ -579,6 +595,13 @@ async function createBounty() {
     }
   } catch (err) {
     log(els.createLog, err.message, "error");
+    if (/deadline must be future/i.test(err.message)) {
+      log(
+        els.createLog,
+        "If that deadline is future in Unix seconds, you are probably using the old deployed contract. Go to Setup, compile the updated default contract, deploy again, then retry Create Bounty.",
+        "error"
+      );
+    }
   } finally {
     setBusy(els.createBountyButton, false);
   }

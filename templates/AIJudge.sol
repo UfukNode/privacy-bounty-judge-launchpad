@@ -84,7 +84,7 @@ contract AIJudge is PrecompileConsumer {
         uint256 deadline
     ) external payable returns (uint256 bountyId) {
         require(msg.value > 0, "reward required");
-        require(deadline > block.timestamp, "deadline must be future");
+        require(deadline > _currentTime(), "deadline must be future");
 
         bountyId = nextBountyId++;
 
@@ -105,7 +105,7 @@ contract AIJudge is PrecompileConsumer {
     ) external bountyExists(bountyId) {
         Bounty storage bounty = bounties[bountyId];
 
-        require(block.timestamp < bounty.deadline, "commit phase closed");
+        require(_currentTime() < bounty.deadline, "commit phase closed");
         require(!bounty.judged, "already judged");
         require(!bounty.finalized, "already finalized");
         require(commitment != bytes32(0), "empty commitment");
@@ -134,7 +134,7 @@ contract AIJudge is PrecompileConsumer {
     ) external bountyExists(bountyId) {
         Bounty storage bounty = bounties[bountyId];
 
-        require(block.timestamp >= bounty.deadline, "reveal phase not open");
+        require(_currentTime() >= bounty.deadline, "reveal phase not open");
         require(!bounty.judged, "already judged");
         require(!bounty.finalized, "already finalized");
         require(bytes(answer).length <= MAX_ANSWER_LENGTH, "answer too long");
@@ -162,7 +162,7 @@ contract AIJudge is PrecompileConsumer {
     ) external bountyExists(bountyId) onlyOwner(bountyId) {
         Bounty storage bounty = bounties[bountyId];
 
-        require(block.timestamp >= bounty.deadline, "deadline not passed");
+        require(_currentTime() >= bounty.deadline, "deadline not passed");
         require(!bounty.judged, "already judged");
         require(!bounty.finalized, "already finalized");
         require(_revealedCount(bounty) > 0, "no revealed submissions");
@@ -283,5 +283,13 @@ contract AIJudge is PrecompileConsumer {
                 count++;
             }
         }
+    }
+
+    function _currentTime() internal view returns (uint256) {
+        if (block.timestamp > 1_000_000_000_000) {
+            return block.timestamp / 1000;
+        }
+
+        return block.timestamp;
     }
 }

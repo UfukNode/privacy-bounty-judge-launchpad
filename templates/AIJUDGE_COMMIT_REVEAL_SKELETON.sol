@@ -49,7 +49,7 @@ contract AIJudgeCommitRevealSkeleton {
     function submitCommitment(uint256 bountyId, bytes32 commitment) external bountyExists(bountyId) {
         Bounty storage bounty = bounties[bountyId];
 
-        require(block.timestamp < bounty.deadline, "commit phase closed");
+        require(_currentTime() < bounty.deadline, "commit phase closed");
         require(!bounty.judged, "already judged");
         require(!bounty.finalized, "already finalized");
         require(commitment != bytes32(0), "empty commitment");
@@ -75,7 +75,7 @@ contract AIJudgeCommitRevealSkeleton {
         Bounty storage bounty = bounties[bountyId];
         uint256 storedIndex = submissionIndexByUser[bountyId][msg.sender];
 
-        require(block.timestamp >= bounty.deadline, "reveal phase not open");
+        require(_currentTime() >= bounty.deadline, "reveal phase not open");
         require(storedIndex != 0, "no commitment");
         require(bytes(answer).length <= MAX_ANSWER_LENGTH, "answer too long");
 
@@ -94,7 +94,7 @@ contract AIJudgeCommitRevealSkeleton {
     function judgeAll(uint256 bountyId, bytes calldata llmInput) external bountyExists(bountyId) onlyOwner(bountyId) {
         Bounty storage bounty = bounties[bountyId];
 
-        require(block.timestamp >= bounty.deadline, "deadline not passed");
+        require(_currentTime() >= bounty.deadline, "deadline not passed");
         require(!bounty.judged, "already judged");
         require(!bounty.finalized, "already finalized");
         require(_revealedCount(bounty) > 0, "no revealed submissions");
@@ -126,5 +126,13 @@ contract AIJudgeCommitRevealSkeleton {
                 count += 1;
             }
         }
+    }
+
+    function _currentTime() internal view returns (uint256) {
+        if (block.timestamp > 1_000_000_000_000) {
+            return block.timestamp / 1000;
+        }
+
+        return block.timestamp;
     }
 }
