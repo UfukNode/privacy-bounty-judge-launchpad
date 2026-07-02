@@ -14,5 +14,8 @@
     "study-guide"
   ],
   "license": "MIT",
+  "dependencies": {
+    "solc": "^0.8.30"
+  },
   "devDependencies": {}
 }

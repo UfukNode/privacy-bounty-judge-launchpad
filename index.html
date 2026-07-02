@@ -71,9 +71,29 @@
 
             <div class="divider"></div>
 
+            <label class="input-row" for="aiJudgeSource">
+              <span>AIJudge.sol source</span>
+              <textarea id="aiJudgeSource" rows="10" spellcheck="false" placeholder="Paste your updated hardhat/contracts/AIJudge.sol source here"></textarea>
+            </label>
+            <div class="notice">
+              Compile works when this tool is running with <code>npm start</code> or Codespaces.
+              If you open a static GitHub Pages copy, use precompiled artifact/bytecode instead.
+            </div>
+            <label class="input-row" for="precompileSource">
+              <span>utils/PrecompileConsumer.sol source</span>
+              <textarea id="precompileSource" rows="7" spellcheck="false" placeholder="Default import source loads here automatically"></textarea>
+            </label>
+            <div class="action-row">
+              <button class="secondary-button" id="loadPrecompileButton" type="button">Load Default Import</button>
+              <button class="primary-button" id="compileButton" type="button">Compile Contract</button>
+            </div>
+            <div class="activity-list" id="compileLog" aria-live="polite"></div>
+
+            <div class="divider"></div>
+
             <label class="input-row" for="artifactInput">
-              <span>Or deploy from compiled artifact / bytecode</span>
-              <textarea id="artifactInput" rows="8" spellcheck="false" placeholder='Paste the full AIJudge.json artifact content, or paste raw 0x bytecode'></textarea>
+              <span>Compiled artifact / bytecode</span>
+              <textarea id="artifactInput" rows="8" spellcheck="false" placeholder='Compile above, or paste the full AIJudge.json artifact content / raw 0x bytecode'></textarea>
             </label>
             <button class="primary-button full-width" id="deployContractButton" type="button" disabled>Deploy Contract</button>
 

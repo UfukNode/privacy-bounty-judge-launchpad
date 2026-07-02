@@ -29,6 +29,11 @@ const els = {
   activeContractLabel: $("#activeContractLabel"),
   contractAddressInput: $("#contractAddressInput"),
   saveContractButton: $("#saveContractButton"),
+  aiJudgeSource: $("#aiJudgeSource"),
+  precompileSource: $("#precompileSource"),
+  loadPrecompileButton: $("#loadPrecompileButton"),
+  compileButton: $("#compileButton"),
+  compileLog: $("#compileLog"),
   artifactInput: $("#artifactInput"),
   deployContractButton: $("#deployContractButton"),
   setupLog: $("#setupLog"),
@@ -273,6 +278,55 @@ async function deployContract() {
   }
 }
 
+async function loadDefaultPrecompile() {
+  const response = await fetch("./templates/PrecompileConsumer.sol");
+  if (!response.ok) {
+    throw new Error("Could not load default PrecompileConsumer.sol");
+  }
+  els.precompileSource.value = await response.text();
+}
+
+async function compileContract() {
+  setBusy(els.compileButton, true, "Compiling...");
+  try {
+    if (!els.precompileSource.value.trim()) {
+      await loadDefaultPrecompile();
+    }
+
+    const response = await fetch("./api/compile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        aiJudgeSource: els.aiJudgeSource.value,
+        precompileConsumerSource: els.precompileSource.value,
+        contractName: "AIJudge"
+      })
+    });
+    const raw = await response.text();
+    let result;
+    try {
+      result = JSON.parse(raw);
+    } catch {
+      throw new Error("Compile API is not available here. Run the tool with npm start or Codespaces, then compile again.");
+    }
+
+    if (!result.ok) {
+      throw new Error((result.errors || ["Compile failed"]).join("\n"));
+    }
+
+    els.artifactInput.value = JSON.stringify(result.artifact, null, 2);
+    log(els.compileLog, `Compiled ${result.contractName}. Artifact moved to deploy box.`, "ok");
+
+    for (const warning of result.warnings || []) {
+      log(els.compileLog, warning, "info");
+    }
+  } catch (err) {
+    log(els.compileLog, err.message, "error");
+  } finally {
+    setBusy(els.compileButton, false);
+  }
+}
+
 async function createBounty() {
   setBusy(els.createBountyButton, true, "Creating...");
   try {
@@ -453,6 +507,12 @@ function init() {
     }
   });
   els.deployContractButton.addEventListener("click", deployContract);
+  els.loadPrecompileButton.addEventListener("click", () => {
+    loadDefaultPrecompile()
+      .then(() => log(els.compileLog, "Default PrecompileConsumer.sol loaded", "ok"))
+      .catch((err) => log(els.compileLog, err.message, "error"));
+  });
+  els.compileButton.addEventListener("click", compileContract);
   els.deadlineOneHourButton.addEventListener("click", () => {
     els.bountyDeadline.value = Math.floor(Date.now() / 1000 + 3600).toString();
   });

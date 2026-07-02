@@ -8,7 +8,7 @@
       "onAutoForward": "openBrowser"
     }
   },
-  "postCreateCommand": "npm test",
+  "postCreateCommand": "npm install && npm test",
   "postStartCommand": "nohup npm start > /tmp/privacy-bounty-judge-launchpad.log 2>&1 &",
   "customizations": {
     "vscode": {

@@ -6,6 +6,7 @@ This is not an official Ritual resource and it is not a guaranteed assignment so
 
 - connect wallet
 - switch/add Ritual Chain
+- compile pasted `AIJudge.sol` source with `solc`
 - deploy a compiled contract from bytecode or a Hardhat artifact
 - save the deployed contract address
 - call `createBounty`
@@ -24,12 +25,13 @@ https://github.com/cozfuttu/ritual-chain-workshop
 
 ## Important Boundary
 
-The tool can send transactions, but it does not write or audit your Solidity for you. Users still need to update the official workshop contract correctly and compile it themselves.
+The tool can compile and send transactions, but it does not write or audit your Solidity for you. Users still need to update the official workshop contract correctly before compiling.
 
-For deployment, paste either:
+For compile/deploy, either:
 
-- raw `0x...` contract creation bytecode, or
-- a Hardhat artifact JSON that contains a `bytecode` field
+- paste `AIJudge.sol` source and click `Compile Contract`, or
+- paste raw `0x...` contract creation bytecode, or
+- paste a Hardhat artifact JSON that contains a `bytecode` field
 
 For `judgeAll`, paste the `llmInput` bytes from the workshop encoder or your own Ritual LLM encoder. The browser tool does not invent a valid Ritual LLM payload.
 
@@ -49,6 +51,7 @@ The wallet confirmation screen is the final source of truth. Read every transact
 ## Run Locally
 
 ```bash
+npm install
 npm start
 ```
 

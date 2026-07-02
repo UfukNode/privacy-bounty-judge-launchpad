@@ -14,6 +14,7 @@ Ne yapıyor?
 
 - Wallet bağlanıyor.
 - Ritual Chain'e geçiyor / ağı ekliyor.
+- `AIJudge.sol` kodunu arayüzden compile ediyor.
 - Hardhat artifact JSON veya 0x bytecode ile contract deploy ediyor.
 - Deploy contract address ve tx hash'i kaydediyor.
 - `createBounty` tx gönderiyor.
@@ -39,6 +40,7 @@ Local çalıştırma:
 ```bash
 git clone https://github.com/UfukNode/privacy-bounty-judge-launchpad.git
 cd privacy-bounty-judge-launchpad
+npm install
 npm start
 ```
 
@@ -60,4 +62,4 @@ Asıl resmi workshop repo:
 https://github.com/cozfuttu/ritual-chain-workshop
 ```
 
-Not: `judgeAll` için geçerli `llmInput` bytes değerini workshop encoder'dan veya kendi encoder'ınızdan almanız gerekiyor.
+Not: Tool compile/deploy/tx tarafını tek arayüze alır. Yine de `AIJudge.sol` kodunu doğru yazmanız gerekir. `judgeAll` için geçerli `llmInput` bytes değerini workshop encoder'dan veya kendi encoder'ınızdan almanız gerekiyor.
