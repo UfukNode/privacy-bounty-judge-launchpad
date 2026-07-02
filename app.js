@@ -47,6 +47,7 @@ const els = {
   bountyRubric: $("#bountyRubric"),
   bountyReward: $("#bountyReward"),
   bountyDeadline: $("#bountyDeadline"),
+  deadlineThreeMinutesButton: $("#deadlineThreeMinutesButton"),
   deadlineOneHourButton: $("#deadlineOneHourButton"),
   createBountyButton: $("#createBountyButton"),
   createLog: $("#createLog"),
@@ -801,6 +802,9 @@ function init() {
       .catch((err) => log(els.compileLog, err.message, "error"));
   });
   els.compileButton.addEventListener("click", compileContract);
+  els.deadlineThreeMinutesButton.addEventListener("click", () => {
+    els.bountyDeadline.value = Math.floor(Date.now() / 1000 + 180).toString();
+  });
   els.deadlineOneHourButton.addEventListener("click", () => {
     els.bountyDeadline.value = Math.floor(Date.now() / 1000 + 3600).toString();
   });
