@@ -41,7 +41,7 @@ For compile/deploy, either:
 
 For `judgeAll`, click `Generate LLM Input` after at least one answer is revealed. The tool reads the bounty and revealed submissions, builds the batch prompt, and ABI-encodes the Ritual LLM payload.
 
-Judging spends prepaid RitualWallet funds, not the bounty reward. Use `Deposit LLM Fees (0.05 RITUAL)` in the Judge tab before calling `judgeAll` if the fee wallet is not ready.
+Judging spends prepaid RitualWallet funds, not the bounty reward. Use `Top Up LLM Fees` in the Judge tab before calling `judgeAll` if the fee wallet is not ready. The tool targets at least `0.35 RITUAL` locked because the LLM precompile may require more than `0.05 RITUAL`.
 
 Use the registered LLM executor address shown in the Judge tab. Do not use the `0x...0802` precompile address as the executor; it is only the precompile call target inside the contract.
 

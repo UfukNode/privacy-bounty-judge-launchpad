@@ -10,8 +10,8 @@ const EXPLORER = "https://explorer.ritualfoundation.org";
 const DEFAULT_LLM_EXECUTOR = "0xB42e435c4252A5a2E7440e37B609F00c61a0c91B";
 const LLM_PRECOMPILE_ADDRESS = "0x0000000000000000000000000000000000000802";
 const RITUAL_WALLET = "0x532F0dF0896F353d8C3DD8cc134e8129DA2a3948";
-const MIN_LLM_BALANCE_WEI = 50_000_000_000_000_000n;
-const LLM_DEPOSIT_WEI = 50_000_000_000_000_000n;
+const MIN_LLM_BALANCE_WEI = 350_000_000_000_000_000n;
+const MIN_LLM_TOP_UP_WEI = 10_000_000_000_000_000n;
 const LLM_LOCK_DURATION = 100_000n;
 const LLM_REQUIRED_TTL_BUFFER = 300n;
 
@@ -22,6 +22,8 @@ const state = {
   contractAddress: localStorage.getItem("operator.contractAddress") || "",
   lastDeployHash: localStorage.getItem("operator.deployHash") || "",
   currentBountyId: localStorage.getItem("operator.currentBountyId") || "",
+  ritualWalletStatus: null,
+  llmRequiredBalanceWei: 0n,
   lastCommitment: ""
 };
 
@@ -212,6 +214,25 @@ function formatWei(wei) {
   return `${whole}.${fraction} RITUAL`;
 }
 
+function llmBalanceTargetWei() {
+  return state.llmRequiredBalanceWei > MIN_LLM_BALANCE_WEI
+    ? state.llmRequiredBalanceWei
+    : MIN_LLM_BALANCE_WEI;
+}
+
+function rememberRequiredLlmBalance(message) {
+  const match = String(message || "").match(/required\s+(\d{15,})/i);
+  if (!match) return false;
+
+  const required = BigInt(match[1]);
+  const buffered = required + MIN_LLM_TOP_UP_WEI;
+  if (buffered > state.llmRequiredBalanceWei) {
+    state.llmRequiredBalanceWei = buffered;
+  }
+
+  return true;
+}
+
 function txLink(hash) {
   return `${EXPLORER}/tx/${hash}`;
 }
@@ -347,22 +368,32 @@ async function readRitualWalletStatus() {
   const balance = EvmTools.decodeUint256(balanceHex);
   const lockUntil = EvmTools.decodeUint256(lockUntilHex);
   const currentBlock = BigInt(currentBlockHex);
-  const hasEnoughBalance = balance >= MIN_LLM_BALANCE_WEI;
+  const target = llmBalanceTargetWei();
+  const hasEnoughBalance = balance >= target;
   const hasEnoughLock = lockUntil >= currentBlock + LLM_REQUIRED_TTL_BUFFER;
 
   return {
     balance,
     lockUntil,
     currentBlock,
+    targetBalance: target,
+    missingBalance: balance >= target ? 0n : target - balance,
     ready: hasEnoughBalance && hasEnoughLock
   };
 }
 
 function renderRitualWalletStatus(status) {
   const lockText = `locked until ${status.lockUntil}, current block ${status.currentBlock}`;
+  const target = status.targetBalance ?? llmBalanceTargetWei();
+  const missing = status.missingBalance ?? (status.balance >= target ? 0n : target - status.balance);
+
   els.ritualWalletStatus.textContent = status.ready
     ? `Ready: ${formatWei(status.balance)} (${lockText})`
-    : `Needs deposit: ${formatWei(status.balance)} (${lockText})`;
+    : `Needs ${formatWei(missing)} more. Current ${formatWei(status.balance)}, target ${formatWei(target)} (${lockText})`;
+
+  els.depositLlmFeesButton.textContent = status.ready
+    ? "LLM Fees Ready"
+    : `Top Up LLM Fees (${formatWei(missing > MIN_LLM_TOP_UP_WEI ? missing : MIN_LLM_TOP_UP_WEI)})`;
 }
 
 async function refreshRitualWalletStatus() {
@@ -382,7 +413,7 @@ async function requireRitualWalletReady() {
   renderRitualWalletStatus(status);
 
   if (!status.ready) {
-    throw new Error("Deposit LLM Fees first. Judge uses RitualWallet prepaid locked funds.");
+    throw new Error("Top Up LLM Fees first. Judge uses RitualWallet prepaid locked funds.");
   }
 
   return status;
@@ -391,12 +422,17 @@ async function requireRitualWalletReady() {
 async function depositLlmFees() {
   setBusy(els.depositLlmFeesButton, true, "Depositing...");
   try {
+    const status = await readRitualWalletStatus();
+    const value = status.missingBalance > MIN_LLM_TOP_UP_WEI
+      ? status.missingBalance
+      : MIN_LLM_TOP_UP_WEI;
+
     const hash = await sendTransaction({
       to: RITUAL_WALLET,
       data: EvmTools.encodeRitualWalletDeposit({ lockDuration: LLM_LOCK_DURATION }),
-      value: toHexQuantity(LLM_DEPOSIT_WEI)
+      value: toHexQuantity(value)
     });
-    log(els.judgeLog, `RitualWallet deposit tx: ${hash}`, "ok", txLink(hash));
+    log(els.judgeLog, `RitualWallet deposit tx (${formatWei(value)}): ${hash}`, "ok", txLink(hash));
     await waitForReceipt(hash);
     log(els.judgeLog, "RitualWallet deposit confirmed", "ok");
     await refreshRitualWalletStatus();
@@ -872,6 +908,10 @@ async function judgeAll() {
     log(els.judgeLog, "Judge transaction confirmed", "ok");
   } catch (err) {
     log(els.judgeLog, err.message, "error");
+    if (rememberRequiredLlmBalance(err.message)) {
+      log(els.judgeLog, `RPC required more LLM balance. Top up to at least ${formatWei(llmBalanceTargetWei())}, then call judgeAll again.`, "error");
+      refreshRitualWalletStatus().catch(() => {});
+    }
   } finally {
     setBusy(els.judgeButton, false);
   }
