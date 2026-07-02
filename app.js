@@ -65,7 +65,9 @@ const els = {
   revealButton: $("#revealButton"),
   revealLog: $("#revealLog"),
   judgeBountyId: $("#judgeBountyId"),
+  llmExecutorAddress: $("#llmExecutorAddress"),
   llmInput: $("#llmInput"),
+  generateLlmInputButton: $("#generateLlmInputButton"),
   judgeButton: $("#judgeButton"),
   judgeLog: $("#judgeLog"),
   finalizeBountyId: $("#finalizeBountyId"),
@@ -285,6 +287,13 @@ async function readBountyStatus(bountyId) {
   return EvmTools.decodeGetBountyStatus(result);
 }
 
+async function readBountyDetails(bountyId) {
+  const result = await callActiveContract(
+    EvmTools.encodeGetBounty({ bountyId })
+  );
+  return EvmTools.decodeGetBountyDetails(result);
+}
+
 async function requireExistingBounty(bountyId) {
   try {
     return await readBountyStatus(bountyId);
@@ -337,6 +346,27 @@ function assertReadyForFinalize(status) {
   assertBountyOwner(status);
   if (!status.judged) throw new Error("Run judgeAll successfully before finalizeWinner");
   if (status.finalized) throw new Error("This bounty is already finalized");
+}
+
+async function loadRevealedSubmissions(bountyId, submissionCount) {
+  const submissions = [];
+
+  for (let index = 0n; index < submissionCount; index += 1n) {
+    const result = await callActiveContract(
+      EvmTools.encodeGetSubmission({ bountyId, index })
+    );
+    const submission = EvmTools.decodeGetSubmission(result);
+
+    if (submission.revealed) {
+      submissions.push({
+        index: Number(index),
+        submitter: submission.submitter,
+        answer: submission.answer
+      });
+    }
+  }
+
+  return submissions;
 }
 
 async function refreshWallet() {
@@ -674,16 +704,51 @@ async function revealAnswer() {
   }
 }
 
+async function generateLlmInput({ quiet = false } = {}) {
+  setBusy(els.generateLlmInputButton, true, "Generating...");
+  try {
+    const bountyId = readPositiveInteger(els.judgeBountyId, "Bounty ID");
+    const bounty = await readBountyDetails(bountyId);
+    assertReadyForJudge(bounty);
+
+    const submissions = await loadRevealedSubmissions(bountyId, bounty.submissionCount);
+    if (submissions.length === 0) {
+      throw new Error("No revealed submissions yet. Reveal at least one answer before judging.");
+    }
+
+    const llmInput = EvmTools.buildJudgeAllLlmInput({
+      executorAddress: normalizeAddress(els.llmExecutorAddress.value),
+      title: bounty.title,
+      rubric: bounty.rubric,
+      submissions
+    });
+
+    els.llmInput.value = llmInput;
+    if (!quiet) {
+      log(els.judgeLog, `LLM input generated from ${submissions.length} revealed submission(s).`, "ok");
+    }
+    return llmInput;
+  } catch (err) {
+    if (!quiet) {
+      log(els.judgeLog, err.message, "error");
+    }
+    throw err;
+  } finally {
+    setBusy(els.generateLlmInputButton, false);
+  }
+}
+
 async function judgeAll() {
   setBusy(els.judgeButton, true, "Judging...");
   try {
     const bountyId = readPositiveInteger(els.judgeBountyId, "Bounty ID");
     const status = await requireExistingBounty(bountyId);
     assertReadyForJudge(status);
+    const llmInput = els.llmInput.value.trim() || await generateLlmInput({ quiet: true });
 
     const data = EvmTools.encodeJudgeAll({
       bountyId,
-      llmInput: readHexBytes(els.llmInput, "LLM input bytes")
+      llmInput: readHexBytes({ value: llmInput }, "LLM input bytes")
     });
     const hash = await sendTransaction({ to: requireContract(), data });
     log(els.judgeLog, `judgeAll tx: ${hash}`, "ok", txLink(hash));
@@ -822,6 +887,7 @@ function init() {
   });
   els.submitCommitmentButton.addEventListener("click", submitCommitment);
   els.revealButton.addEventListener("click", revealAnswer);
+  els.generateLlmInputButton.addEventListener("click", () => generateLlmInput().catch(() => {}));
   els.judgeButton.addEventListener("click", judgeAll);
   els.finalizeButton.addEventListener("click", finalizeWinner);
   els.copyProofButton.addEventListener("click", async () => {

@@ -22,7 +22,7 @@ Ne yapıyor?
 - Commitment hesaplıyor.
 - `submitCommitment` tx gönderiyor.
 - `revealAnswer` tx gönderiyor.
-- `judgeAll` tx gönderiyor.
+- Revealed cevaplardan LLM input bytes üretip `judgeAll` tx gönderiyor.
 - `finalizeWinner` tx gönderiyor.
 - Discord Proof of Building alanlarını tek pakette kopyalatıyor.
 
@@ -62,4 +62,4 @@ Asıl resmi workshop repo:
 https://github.com/cozfuttu/ritual-chain-workshop
 ```
 
-Not: Tool compile/deploy/tx tarafını tek arayüze alır. Yine de `AIJudge.sol` kodunu doğru yazmanız gerekir. `judgeAll` için geçerli `llmInput` bytes değerini workshop encoder'dan veya kendi encoder'ınızdan almanız gerekiyor.
+Not: Tool compile/deploy/tx tarafını tek arayüze alır. `judgeAll` için `Generate LLM Input` butonu bounty bilgilerini ve revealed cevapları okuyup payload'ı üretir.

@@ -13,6 +13,7 @@ This is not an official Ritual resource and it is not a guaranteed assignment so
 - generate salt and commitment
 - call `submitCommitment`
 - call `revealAnswer`
+- generate Ritual LLM input from revealed submissions
 - call `judgeAll`
 - call `finalizeWinner`
 - prepare the Discord Proof of Building fields
@@ -37,7 +38,7 @@ For compile/deploy, either:
 - paste raw `0x...` contract creation bytecode, or
 - paste a Hardhat artifact JSON that contains a `bytecode` field
 
-For `judgeAll`, paste the `llmInput` bytes from the workshop encoder or your own Ritual LLM encoder. The browser tool does not invent a valid Ritual LLM payload.
+For `judgeAll`, click `Generate LLM Input` after at least one answer is revealed. The tool reads the bounty and revealed submissions, builds the batch prompt, and ABI-encodes the Ritual LLM payload.
 
 ## Security Model
 

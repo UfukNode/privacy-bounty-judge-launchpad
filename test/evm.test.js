@@ -8,6 +8,7 @@ test("function selectors match expected signatures", () => {
   assert.equal(evm.selector("revealAnswer(uint256,string,bytes32)"), "0xd5198a71");
   assert.equal(evm.selector("judgeAll(uint256,bytes)"), "0xd8964ee9");
   assert.equal(evm.selector("finalizeWinner(uint256,uint256)"), "0x5a7722f1");
+  assert.equal(evm.selector("getSubmission(uint256,uint256)"), "0xb7ed7071");
 });
 
 test("encodes createBounty calldata with two dynamic strings", () => {
@@ -78,4 +79,41 @@ test("decodes getBounty status fields from ABI return data", () => {
     submissionCount: 2n,
     winnerIndex: 0n
   });
+});
+
+test("decodes getSubmission return data", () => {
+  const answerTail = evm.dynamicString("hello");
+  const result = evm.concatHex([
+    evm.addressWord("0xbc4ebf8bb59ceb2774658c1b30eb2e2c257ac7c7"),
+    `0x${"11".repeat(32)}`,
+    evm.word(128n),
+    evm.boolWord(true),
+    answerTail
+  ]);
+
+  assert.deepEqual(evm.decodeGetSubmission(result), {
+    submitter: "0xbc4ebf8bb59ceb2774658c1b30eb2e2c257ac7c7",
+    commitment: `0x${"11".repeat(32)}`,
+    answer: "hello",
+    revealed: true
+  });
+});
+
+test("builds a non-empty Ritual LLM input payload", () => {
+  const input = evm.buildJudgeAllLlmInput({
+    executorAddress: "0x0000000000000000000000000000000000000802",
+    title: "Privacy Preserving AI Bounty Judge",
+    rubric: "Judge correctness and privacy reasoning.",
+    submissions: [
+      {
+        index: 0,
+        submitter: "0xbc4ebf8bb59ceb2774658c1b30eb2e2c257ac7c7",
+        answer: "Use commit-reveal."
+      }
+    ]
+  });
+
+  assert.match(input, /^0x[0-9a-f]+$/i);
+  assert.ok(input.length > 1000);
+  assert.match(input, /7a61692d6f72672f474c4d2d342e372d465038/i);
 });
