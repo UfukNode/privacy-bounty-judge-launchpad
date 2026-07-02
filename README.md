@@ -17,6 +17,8 @@ This is not an official Ritual resource and it is not a guaranteed assignment so
 - call `finalizeWinner`
 - prepare the Discord Proof of Building fields
 
+The UI checks common revert cases before sending wallet transactions. If `Create Bounty` did not succeed, `Commit`, `Reveal`, `Judge`, and `Finalize` stop with a local error instead of burning gas on a known-bad transaction.
+
 Official workshop repository:
 
 ```text

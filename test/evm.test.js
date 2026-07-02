@@ -54,3 +54,28 @@ test("parses raw bytecode and Hardhat artifact bytecode", () => {
   assert.throws(() => evm.parseArtifactBytecode("Or paste Hardhat artifact JSON / raw bytecode"), /placeholder text/);
   assert.throws(() => evm.parseArtifactBytecode("not json"), /valid JSON/);
 });
+
+test("decodes getBounty status fields from ABI return data", () => {
+  const result = evm.concatHex([
+    evm.addressWord("0xbc4ebf8bb59ceb2774658c1b30eb2e2c257ac7c7"),
+    evm.word(320n),
+    evm.word(384n),
+    evm.word(1000000000000000n),
+    evm.word(1780000000n),
+    evm.word(1n),
+    evm.word(0n),
+    evm.word(2n),
+    evm.word(0n),
+    evm.word(448n)
+  ]);
+
+  assert.deepEqual(evm.decodeGetBountyStatus(result), {
+    owner: "0xbc4ebf8bb59ceb2774658c1b30eb2e2c257ac7c7",
+    reward: 1000000000000000n,
+    deadline: 1780000000n,
+    judged: true,
+    finalized: false,
+    submissionCount: 2n,
+    winnerIndex: 0n
+  });
+});

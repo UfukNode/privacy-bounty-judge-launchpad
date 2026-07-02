@@ -14,8 +14,13 @@ const state = {
   chainId: "",
   contractAddress: localStorage.getItem("operator.contractAddress") || "",
   lastDeployHash: localStorage.getItem("operator.deployHash") || "",
+  currentBountyId: localStorage.getItem("operator.currentBountyId") || "",
   lastCommitment: ""
 };
+
+const BOUNTY_CREATED_TOPIC = CommitmentTools.keccak256Hex(
+  CommitmentTools.utf8Bytes("BountyCreated(uint256,address,string,uint256,uint256)")
+);
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
@@ -115,6 +120,66 @@ function parseEther(value) {
   return BigInt(whole) * 10n ** 18n + BigInt(fraction.padEnd(18, "0"));
 }
 
+function readRequiredText(input, label) {
+  const value = String(input.value || "").trim();
+  if (!value) {
+    throw new Error(`${label} cannot be empty`);
+  }
+  return value;
+}
+
+function readPositiveInteger(input, label) {
+  const raw = String(input.value || "").trim();
+  if (!/^\d+$/.test(raw)) {
+    throw new Error(`${label} must be a whole number`);
+  }
+
+  const value = BigInt(raw);
+  if (value <= 0n) {
+    throw new Error(`${label} must be 1 or bigger`);
+  }
+
+  return value;
+}
+
+function readNonNegativeInteger(input, label) {
+  const raw = String(input.value || "").trim();
+  if (!/^\d+$/.test(raw)) {
+    throw new Error(`${label} must be a whole number`);
+  }
+  return BigInt(raw);
+}
+
+function readRewardWei() {
+  const value = parseEther(els.bountyReward.value);
+  if (value <= 0n) {
+    throw new Error("Reward must be bigger than 0 RITUAL");
+  }
+  return value;
+}
+
+function readFutureDeadline() {
+  const deadline = readPositiveInteger(els.bountyDeadline, "Deadline");
+  const now = BigInt(Math.floor(Date.now() / 1000));
+
+  if (deadline <= now) {
+    throw new Error("Deadline must be in the future. Click +1 hour for a safe test value.");
+  }
+
+  return deadline;
+}
+
+function readHexBytes(input, label, { allowEmpty = false } = {}) {
+  const value = String(input.value || "").trim();
+  if (!/^0x[0-9a-fA-F]*$/.test(value) || value.length % 2 !== 0) {
+    throw new Error(`${label} must be 0x-prefixed hex bytes`);
+  }
+  if (!allowEmpty && value === "0x") {
+    throw new Error(`${label} cannot be empty`);
+  }
+  return value;
+}
+
 function formatEther(hexWei) {
   const wei = BigInt(hexWei || "0x0");
   const whole = wei / 10n ** 18n;
@@ -154,6 +219,125 @@ async function request(method, params = []) {
   return state.provider.request({ method, params });
 }
 
+function readableRpcError(err) {
+  const messages = [];
+  const seen = new Set();
+
+  function collect(value) {
+    if (!value || typeof value !== "object" || seen.has(value)) return;
+    seen.add(value);
+
+    for (const key of ["reason", "message"]) {
+      if (typeof value[key] === "string" && value[key].trim()) {
+        messages.push(value[key].trim());
+      }
+    }
+
+    collect(value.data);
+    collect(value.error);
+    collect(value.cause);
+  }
+
+  collect(err);
+
+  const joined = messages.join(" | ");
+  const match = joined.match(/execution reverted(?::| with reason string)?\s*['"]?([^'"]+)?/i);
+  if (match?.[1]) {
+    return `execution reverted: ${match[1].trim()}`;
+  }
+
+  return joined || "transaction would revert";
+}
+
+async function simulateTransaction(tx) {
+  if (!tx.to) return;
+
+  try {
+    await request("eth_call", [tx, "latest"]);
+  } catch (err) {
+    throw new Error(`Transaction blocked before gas is spent: ${readableRpcError(err)}`);
+  }
+}
+
+async function callActiveContract(data) {
+  requireWallet();
+  requireRitual();
+
+  try {
+    return await request("eth_call", [
+      {
+        from: state.account,
+        to: requireContract(),
+        data
+      },
+      "latest"
+    ]);
+  } catch (err) {
+    throw new Error(readableRpcError(err));
+  }
+}
+
+async function readBountyStatus(bountyId) {
+  const result = await callActiveContract(
+    EvmTools.encodeGetBounty({ bountyId })
+  );
+  return EvmTools.decodeGetBountyStatus(result);
+}
+
+async function requireExistingBounty(bountyId) {
+  try {
+    return await readBountyStatus(bountyId);
+  } catch (err) {
+    if (/bounty not found/i.test(err.message)) {
+      throw new Error(`Bounty ID ${bountyId} does not exist. Create Bounty must succeed first.`);
+    }
+    throw err;
+  }
+}
+
+function assertBountyOwner(status) {
+  if (status.owner.toLowerCase() !== state.account.toLowerCase()) {
+    throw new Error("Only the bounty creator can run this step");
+  }
+}
+
+function assertOpenForCommit(status) {
+  const now = BigInt(Math.floor(Date.now() / 1000));
+  if (status.finalized) throw new Error("This bounty is already finalized");
+  if (status.judged) throw new Error("This bounty is already judged");
+  if (now >= status.deadline) {
+    throw new Error("Commit phase is closed. Create a new bounty or reveal an existing committed answer.");
+  }
+}
+
+function assertOpenForReveal(status) {
+  const now = BigInt(Math.floor(Date.now() / 1000));
+  if (status.finalized) throw new Error("This bounty is already finalized");
+  if (status.judged) throw new Error("This bounty is already judged");
+  if (now < status.deadline) {
+    throw new Error(`Reveal is not open yet. Wait until unix deadline ${status.deadline}.`);
+  }
+}
+
+function assertReadyForJudge(status) {
+  const now = BigInt(Math.floor(Date.now() / 1000));
+  assertBountyOwner(status);
+  if (status.finalized) throw new Error("This bounty is already finalized");
+  if (status.judged) throw new Error("This bounty is already judged");
+  if (now < status.deadline) {
+    throw new Error(`Judge is not open yet. Wait until unix deadline ${status.deadline}.`);
+  }
+  if (status.submissionCount === 0n) {
+    throw new Error("There are no submissions on this bounty");
+  }
+}
+
+function assertReadyForFinalize(status) {
+  assertBountyOwner(status);
+  if (!status.judged) throw new Error("Run judgeAll successfully before finalizeWinner");
+  if (status.finalized) throw new Error("This bounty is already finalized");
+}
+
 async function refreshWallet() {
   if (!state.provider || !state.account) return;
   state.chainId = await request("eth_chainId");
@@ -186,6 +370,26 @@ function setDeployHash(hash) {
   localStorage.setItem("operator.deployHash", hash);
   els.deployHash.value = hash;
   updateProofPack();
+}
+
+function setCurrentBountyId(bountyId) {
+  const value = String(bountyId);
+  state.currentBountyId = value;
+  localStorage.setItem("operator.currentBountyId", value);
+
+  els.commitBountyId.value = value;
+  els.revealBountyId.value = value;
+  els.judgeBountyId.value = value;
+  els.finalizeBountyId.value = value;
+}
+
+function bountyIdFromReceipt(receipt) {
+  const log = (receipt.logs || []).find(
+    (item) => item.topics?.[0]?.toLowerCase() === BOUNTY_CREATED_TOPIC.toLowerCase()
+  );
+
+  if (!log?.topics?.[1]) return "";
+  return BigInt(log.topics[1]).toString();
 }
 
 function updateButtons() {
@@ -236,7 +440,12 @@ async function switchToRitual() {
 async function waitForReceipt(hash) {
   for (let i = 0; i < 90; i += 1) {
     const receipt = await request("eth_getTransactionReceipt", [hash]);
-    if (receipt) return receipt;
+    if (receipt) {
+      if (receipt.status && receipt.status !== "0x1") {
+        throw new Error(`Transaction reverted on chain: ${hash}`);
+      }
+      return receipt;
+    }
     await new Promise((resolve) => setTimeout(resolve, 2000));
   }
   throw new Error("Transaction sent, but receipt did not arrive in time");
@@ -252,6 +461,7 @@ async function sendTransaction({ to, data, value = "0x0" }) {
   };
   if (to) tx.to = to;
 
+  await simulateTransaction(tx);
   return request("eth_sendTransaction", [tx]);
 }
 
@@ -347,17 +557,26 @@ async function compileContract() {
 async function createBounty() {
   setBusy(els.createBountyButton, true, "Creating...");
   try {
-    const deadline = BigInt(els.bountyDeadline.value.trim());
-    const value = toHexQuantity(parseEther(els.bountyReward.value));
+    const title = readRequiredText(els.bountyTitle, "Title");
+    const rubric = readRequiredText(els.bountyRubric, "Rubric");
+    const deadline = readFutureDeadline();
+    const value = toHexQuantity(readRewardWei());
     const data = EvmTools.encodeCreateBounty({
-      title: els.bountyTitle.value,
-      rubric: els.bountyRubric.value,
+      title,
+      rubric,
       deadline
     });
     const hash = await sendTransaction({ to: requireContract(), data, value });
     log(els.createLog, `createBounty tx: ${hash}`, "ok", txLink(hash));
-    await waitForReceipt(hash);
-    log(els.createLog, "Bounty creation confirmed. Use the emitted bountyId from explorer/logs.", "ok");
+    const receipt = await waitForReceipt(hash);
+    const bountyId = bountyIdFromReceipt(receipt);
+
+    if (bountyId) {
+      setCurrentBountyId(bountyId);
+      log(els.createLog, `Bounty created. Bounty ID ${bountyId} filled into the next steps.`, "ok");
+    } else {
+      log(els.createLog, "Bounty creation confirmed. Read bountyId from the BountyCreated event in explorer.", "ok");
+    }
   } catch (err) {
     log(els.createLog, err.message, "error");
   } finally {
@@ -368,8 +587,8 @@ async function createBounty() {
 function calculateCommitment() {
   requireWallet();
   const salt = CommitmentTools.normalizeBytes32(els.commitSalt.value);
-  const bountyId = BigInt(els.commitBountyId.value.trim());
-  const answer = els.commitAnswer.value;
+  const bountyId = readPositiveInteger(els.commitBountyId, "Bounty ID");
+  const answer = readRequiredText(els.commitAnswer, "Answer");
   const commitment = CommitmentTools.computeCommitment({
     answer,
     salt,
@@ -388,9 +607,13 @@ function calculateCommitment() {
 async function submitCommitment() {
   setBusy(els.submitCommitmentButton, true, "Submitting...");
   try {
-    const commitment = state.lastCommitment || calculateCommitment();
+    const bountyId = readPositiveInteger(els.commitBountyId, "Bounty ID");
+    const status = await requireExistingBounty(bountyId);
+    assertOpenForCommit(status);
+
+    const commitment = calculateCommitment();
     const data = EvmTools.encodeSubmitCommitment({
-      bountyId: BigInt(els.commitBountyId.value.trim()),
+      bountyId,
       commitmentHash: commitment
     });
     const hash = await sendTransaction({ to: requireContract(), data });
@@ -407,9 +630,13 @@ async function submitCommitment() {
 async function revealAnswer() {
   setBusy(els.revealButton, true, "Revealing...");
   try {
+    const bountyId = readPositiveInteger(els.revealBountyId, "Bounty ID");
+    const status = await requireExistingBounty(bountyId);
+    assertOpenForReveal(status);
+
     const data = EvmTools.encodeRevealAnswer({
-      bountyId: BigInt(els.revealBountyId.value.trim()),
-      answer: els.revealAnswer.value,
+      bountyId,
+      answer: readRequiredText(els.revealAnswer, "Answer"),
       salt: CommitmentTools.normalizeBytes32(els.revealSalt.value)
     });
     const hash = await sendTransaction({ to: requireContract(), data });
@@ -426,9 +653,13 @@ async function revealAnswer() {
 async function judgeAll() {
   setBusy(els.judgeButton, true, "Judging...");
   try {
+    const bountyId = readPositiveInteger(els.judgeBountyId, "Bounty ID");
+    const status = await requireExistingBounty(bountyId);
+    assertReadyForJudge(status);
+
     const data = EvmTools.encodeJudgeAll({
-      bountyId: BigInt(els.judgeBountyId.value.trim()),
-      llmInput: els.llmInput.value.trim() || "0x"
+      bountyId,
+      llmInput: readHexBytes(els.llmInput, "LLM input bytes")
     });
     const hash = await sendTransaction({ to: requireContract(), data });
     log(els.judgeLog, `judgeAll tx: ${hash}`, "ok", txLink(hash));
@@ -444,9 +675,18 @@ async function judgeAll() {
 async function finalizeWinner() {
   setBusy(els.finalizeButton, true, "Finalizing...");
   try {
+    const bountyId = readPositiveInteger(els.finalizeBountyId, "Bounty ID");
+    const status = await requireExistingBounty(bountyId);
+    assertReadyForFinalize(status);
+
+    const winnerIndex = readNonNegativeInteger(els.winnerIndex, "Winner index");
+    if (winnerIndex >= status.submissionCount) {
+      throw new Error(`Winner index is too high. This bounty has ${status.submissionCount} submissions.`);
+    }
+
     const data = EvmTools.encodeFinalizeWinner({
-      bountyId: BigInt(els.finalizeBountyId.value.trim()),
-      winnerIndex: BigInt(els.winnerIndex.value.trim())
+      bountyId,
+      winnerIndex
     });
     const hash = await sendTransaction({ to: requireContract(), data });
     log(els.finalizeLog, `finalizeWinner tx: ${hash}`, "ok", txLink(hash));
@@ -511,6 +751,9 @@ function init() {
   els.proofContract.value = state.contractAddress;
   els.deployHash.value = state.lastDeployHash;
   els.activeContractLabel.textContent = state.contractAddress ? shortAddress(state.contractAddress) : "Not set";
+  if (state.currentBountyId) {
+    setCurrentBountyId(state.currentBountyId);
+  }
   updateProofPack();
 
   els.connectButton.addEventListener("click", () => connectWallet().catch((err) => alert(err.message)));
